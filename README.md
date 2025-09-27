@@ -88,3 +88,280 @@ public enum AstartesCategory {
 - Платформа Spring. Сходства и отличия с Java EE.
 - Spring Boot.
 - Spring Data.
+
+# UI Спецификация (Пользовательский интерфейс)
+
+## Главные принципы
+- Веб-клиент SPA (Vue), server-side — Spring MVC.
+- Таблица (главный экран) с пагинацией, сортировкой и фильтрацией по строковым колонкам (по неполному совпадению).
+- Для операций Create / Update / Delete — модальные окна.
+- Детальная панель для объекта (включая связанные объекты — Chapter).
+- Реальное время: WebSocket (STOMP over WS) или Server-Sent Events для обновлений CRUD у всех пользователей.
+- Ошибки ввода: информативные сообщения рядом с полями + всплывающий toast для серверных ошибок.
+
+---
+
+## Главная страница — Список SpaceMarines
+**Заголовок:** Space Marines  
+
+### Компоненты
+- **Поиск/фильтр:** текстовое поле, фильтрует по частичному совпадению в колонках:  
+  `name`, `chapter.name`, `chapter.parentLegion`, `chapter.world`, `achievements`.
+- **Сортировка:** кликом по заголовку столбца (ASC / DESC / none).
+- **Таблица с колонками:**
+  - `id` (Long)
+  - `name` (String)
+  - `x` (Float) — координата.x
+  - `y` (Float) — координата.y
+  - `creationDate` (LocalDateTime, формат YYYY-MM-DD HH:mm)
+  - `chapter.name`
+  - `chapter.parentLegion`
+  - `chapter.world`
+  - `health` (double)
+  - `loyal` (boolean)
+  - `achievements` (String)
+  - `category` (enum)
+  - `actions` (View / Edit / Delete)
+- **Пагинация:** серверная (limit/offset или page/size). Элементы на странице: 10/25/50.
+
+### Кнопки
+- **Create SpaceMarine** — открывает модальное окно.
+- **Специальные операции** — кнопки рядом с Create:
+  - Sum health — GET `/api/space-marines/ops/sum-health`
+  - Avg health — GET `/api/space-marines/ops/avg-health`
+  - Min coordinates — GET `/api/space-marines/ops/min-coordinates`
+  - Add marine to chapter — диалог выбора marine и chapter → POST `/api/space-marines/{id}/assign-chapter?chapterId=...`
+  - Dissolve chapter — диалог выбора chapter → POST `/api/chapters/{id}/dissolve`
+
+---
+
+### Поведение таблицы
+- Клик по строке → открывает правую панель с деталями.
+- **Edit** → открывает модальное окно редактирования.
+- **Delete** → подтверждение (попап). При запрещенном удалении — сообщение с причиной.
+
+---
+
+## Диалог: Create SpaceMarine
+**Поля:**
+- `name` (строка, required, non-empty)
+- `coordinates.x` (float, required)
+- `coordinates.y` (float, required)
+- `health` (double, >0)
+- `loyal` (checkbox, required)
+- `achievements` (multiline text, required)
+- `category` (select: SCOUT, DREADNOUGHT, ASSAULT, SUPPRESSOR, LIBRARIAN) required
+- `chapter`:
+  - выбрать существующий Chapter из выпадающего списка (по имени, подгружается с сервера)
+  - или **Create Chapter** (мини-форма: `name` required, `parentLegion` optional, `world` optional)
+
+**Валидация:** на клиенте + визуальные подсказки ошибок.  
+
+**Submit:** POST `/api/space-marines` → закрытие модала + обновление таблицы через WebSocket/SSE.
+
+---
+
+## Диалог: Edit SpaceMarine
+- Поля те же, что Create, с предзаполнением.
+- `id` и `creationDate` — read-only.
+- Submit → PUT `/api/space-marines/{id}`
+- Конфликт 409 → сообщение с предложением обновить форму.
+
+---
+
+## Детали объекта (Detail view)
+- Полная карточка: все поля + вкладка Chapter (с возможностью перейти к Chapter)
+- Кнопки: Edit, Delete
+
+---
+
+## Специальные операции
+**Кнопки:** рядом с Create SpaceMarine  
+- **Sum health**
+- **Avg health**
+- **Min coordinates** (минимальный `x`, при равенстве `y`)
+- **Add marine to chapter** — диалог выбора marine и chapter
+- **Dissolve chapter** — диалог выбора chapter  
+**Результаты операций:** модал или блок result
+
+---
+
+## Сообщения об ошибках
+- Валидация полей: конкретная причина (`name не может быть пустым`, `health > 0`, `coordinates.x обязателен`)
+- Серверные ошибки (409, 400, 500): toast + окно с подробностями
+
+---
+
+## Реальное время
+- Технология: WebSocket + STOMP или SSE
+- Топики:
+  - `/topic/space-marines/changes` — события CRUD {type: CREATED|UPDATED|DELETED, id, payload}
+  - `/topic/chapters/changes`
+- Клиенты подписываются на топики → обновляют таблицу/карточки/модалы
+
+---
+
+## Правила доступа
+- Все пользователи могут просматривать SpaceMarines и Chapters.
+- Авторизованные:
+  - Создавать SpaceMarines (становятся owner)
+  - Редактировать только свои SpaceMarines
+  - Удалять только свои SpaceMarines
+  - Спец. функции (sum/avg/min) доступны всем авторизованным
+- Удаление Chapters — только администратор/спец. роль
+
+---
+
+## UI: страница авторизации
+**Экран Login**
+- Поля: Username (обязательное), Password (обязательное, password)
+- Кнопка Login
+- Ошибка 401: «Неверный логин или пароль»
+- Опция Register (если разрешена)
+- После входа: JWT или сессия в localStorage/cookie, Authorization: Bearer <token>
+- Edit/Delete на главной странице только для owner
+
+
+# Backend Specification — SpaceMarine IS
+
+## 1. Архитектура
+- **Стек**: Spring Boot, Spring MVC, Spring Data JPA (Hibernate), PostgreSQL, Spring Security (JWT), WebSocket/STOMP.  
+- **Слои проекта**:
+  - `controller/` — REST API.
+  - `service/` — бизнес-логика, транзакции, вызовы функций БД.
+  - `repository/` — JPA-репозитории.
+  - `entity/` — доменные сущности.
+  - `dto/` — объекты запросов/ответов.
+  - `mapper/` — преобразование DTO ↔ Entity.
+  - `auth/` — аутентификация и авторизация.
+  - `exception/` — глобальный обработчик ошибок.
+- **Миграции БД**: Flyway (схема + SQL-функции).  
+- **Обновления в реальном времени**: WebSocket + STOMP.
+
+---
+
+## 2. Сущности
+- **SpaceMarine**
+  - `id` (генерируется в БД, >0, уникален)
+  - `name` (не null, не пустая строка)
+  - `coordinates` (не null: x,y не null)
+  - `creationDate` (генерируется автоматически, не null)
+  - `chapter` (не null)
+  - `health` (>0)
+  - `loyal` (не null)
+  - `achievements` (не null)
+  - `category` (enum, не null)
+  - `owner` (ссылка на User)
+- **Coordinates**: `x`, `y` (оба not null).
+- **Chapter**: `name` (not null, не пустая), `parentLegion` (optional), `world` (optional).
+- **User**: `username` (unique, not null), `passwordHash`, `roles`.
+
+---
+
+## 3. Хранение и ограничения
+- Таблицы: `space_marine`, `chapter`, `app_user`.  
+- Ограничения:
+  - `NOT NULL` для обязательных полей.
+  - `CHECK (health > 0)`.
+  - FK: `space_marine.chapter_id → chapter.id`.
+- Индексы для поиска по строковым полям.  
+- **SQL-функции**:
+  - `fn_sum_health()` → сумма health.
+  - `fn_avg_health()` → среднее health.
+  - `fn_min_coordinates()` → marine с минимальными координатами.
+  - `fn_assign_chapter(marine_id, chapter_id)` → привязка к ордену.
+  - `fn_dissolve_chapter(chapter_id)` → удаление ордена (если нет marines).
+
+---
+
+## 4. REST API
+
+### SpaceMarine
+- `GET /api/space-marines` — список (пагинация, сортировка, фильтр).
+- `GET /api/space-marines/{id}` — получить по ID.
+- `POST /api/space-marines` — создать.
+- `PUT /api/space-marines/{id}` — обновить.
+- `DELETE /api/space-marines/{id}` — удалить.
+
+### Chapter
+- `GET /api/chapters` — список для выбора.
+- `POST /api/chapters` — создать.
+- `GET /api/chapters/{id}` — получить.
+
+### Специальные операции
+- `GET /api/space-marines/ops/sum-health`
+- `GET /api/space-marines/ops/avg-health`
+- `GET /api/space-marines/ops/min-coordinates`
+- `POST /api/space-marines/{id}/assign-chapter?chapterId=...`
+- `POST /api/chapters/{id}/dissolve`
+
+---
+
+## 5. Фильтрация, сортировка, пагинация
+- Фильтр по неполному совпадению (ILIKE) для:
+  - `name`
+  - `achievements`
+  - `chapter.name`
+  - `chapter.parentLegion`
+  - `chapter.world`
+- Сортировка — по любому столбцу (ASC/DESC).  
+- Пагинация — параметры `page`, `size`.
+
+---
+
+## 6. Реальное время
+- Endpoint: `/ws`.  
+- Топики:
+  - `/topic/space-marines/changes`
+  - `/topic/chapters/changes`
+- События:
+  - `CREATED`
+  - `UPDATED`
+  - `DELETED`
+
+---
+
+## 7. Безопасность
+- **JWT-аутентификация**:
+  - `POST /api/auth/login` → токен.
+  - `POST /api/auth/register` (опционально).  
+- **Роли**:
+  - `USER`
+  - `ADMIN`
+- **Правила доступа**:
+  - `GET` — просмотр доступен всем.
+  - `POST/PUT/DELETE` — только авторизованные.
+  - Редактирование/удаление — владелец или админ.
+  - Dissolve chapter — только админ.
+- Пароли хранить в **BCrypt**.
+
+---
+
+## 8. Валидация и обработка ошибок
+- На входе: `@Valid` + Bean Validation.  
+- Глобальный обработчик ошибок (`@ControllerAdvice`).  
+- Статусы:
+  - `400` — валидация.
+  - `404` — объект не найден.
+  - `403` — нет доступа.
+  - `409` — конфликт (связанные объекты, блокировки).
+- Ответ: JSON с сообщением и деталями ошибок.
+
+---
+
+## 9. Тестирование
+- Unit-тесты для сервисов.  
+- Интеграционные тесты (SpringBootTest + PostgreSQL Testcontainers).  
+- Тесты REST API (MockMvc).  
+- Проверка SQL-функций.  
+- Тесты безопасности (роль, владелец, доступы).  
+
+---
+
+## 10. Настройки
+- **БД**: PostgreSQL (host `pg`, db `studs`).  
+- **Миграции**: Flyway.  
+- **Конфигурация**: `application.yml`:
+  - datasource (url, user, password),
+  - jpa (ddl-auto=none, show-sql=false),
+  - jwt (secret, expiration).  

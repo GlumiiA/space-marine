@@ -8,11 +8,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
+import ru.itmo.is.space_marine_backend.dto.response.PageResponseDTO;
 import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineResponseDTO;
 import ru.itmo.is.space_marine_backend.entity.AstartesCategory;
+import ru.itmo.is.space_marine_backend.entity.User;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineService;
 
 import java.util.List;
@@ -27,6 +31,31 @@ public class SpaceMarineController {
         this.spaceMarineService = spaceMarineService;
     }
 
+    @GetMapping
+    public ResponseEntity<PageResponseDTO<SpaceMarineResponseDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        Pageable pageable = PageRequest.of(
+                page, size,
+                sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending()
+        );
+
+        Page<SpaceMarineResponseDTO> marinesPage = spaceMarineService.getAllSpaceMarines(pageable);
+
+        PageResponseDTO<SpaceMarineResponseDTO> dto = new PageResponseDTO<>(
+                marinesPage.getContent(),
+                marinesPage.getNumber(),
+                marinesPage.getSize(),
+                marinesPage.getTotalElements(),
+                marinesPage.getTotalPages()
+        );
+
+        return ResponseEntity.ok(dto);
+    }
+
     //  Получение объекта по ID
     @GetMapping("/{id}")
     public ResponseEntity<SpaceMarineResponseDTO> getById(@PathVariable Long id) {
@@ -35,21 +64,24 @@ public class SpaceMarineController {
 
     //  Создание нового объекта
     @PostMapping
-    public ResponseEntity<SpaceMarineResponseDTO> create(@Valid @RequestBody SpaceMarineCreateDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(spaceMarineService.createSpaceMarine(dto));
+    public ResponseEntity<SpaceMarineResponseDTO> createMarine(
+            @Valid @RequestBody SpaceMarineCreateDTO dto,
+            @AuthenticationPrincipal String username) {
+        return ResponseEntity.ok(spaceMarineService.createSpaceMarine(dto, username));
     }
 
     //  Обновление объекта по ID
     @PutMapping("/{id}")
     public ResponseEntity<SpaceMarineResponseDTO> update(@PathVariable Long id,
-                                                         @Valid @RequestBody SpaceMarineUpdateDTO dto) {
-        return ResponseEntity.ok(spaceMarineService.updateSpaceMarine(id, dto));
+                                                         @Valid @RequestBody SpaceMarineUpdateDTO dto,
+                                                         @AuthenticationPrincipal String username) {
+        return ResponseEntity.ok(spaceMarineService.updateSpaceMarine(id, dto, username));
     }
 
-    //  Удаление объекта по ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        spaceMarineService.deleteSpaceMarine(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id,
+                                       @AuthenticationPrincipal String username) {
+        spaceMarineService.deleteSpaceMarine(id, username);
         return ResponseEntity.noContent().build();
     }
 

@@ -39,4 +39,8 @@ public class SpaceMarine {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AstartesCategory category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 }

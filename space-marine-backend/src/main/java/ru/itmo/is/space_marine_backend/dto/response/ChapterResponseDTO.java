@@ -8,9 +8,14 @@ import lombok.NoArgsConstructor;
 public class ChapterResponseDTO {
     private String name;
     private Integer marinesCount;
+    private String parentLegion;
 
-    public ChapterResponseDTO(String name, Integer marinesCount) {
+    private String world;
+
+    public ChapterResponseDTO(String name, String parentLegion, String world, Integer marinesCount) {
         this.name = name;
+        this.parentLegion = parentLegion;
+        this.world = world;
         this.marinesCount = marinesCount;
     }
 }

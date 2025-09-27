@@ -1,52 +1,66 @@
-<script setup>
-import { ref, onMounted, watch } from "vue";
-import { useRouter } from "vue-router";
-
-const router = useRouter();
-const token = ref(null);
-const isLoggedIn = ref(false);
-
-// Функция для проверки авторизации
-function checkAuth() {
-  token.value = localStorage.getItem("token");
-  isLoggedIn.value = !!token.value;
-  console.log("Auth checked, isLoggedIn:", isLoggedIn.value);
-}
-
-// Инициализация при монтировании
-onMounted(() => {
-  checkAuth();
-});
-
-// Следим за storage
-window.addEventListener("storage", (event) => {
-  if (event.key === "token") {
-    console.log("Storage event, new token:", event.newValue);
-    checkAuth(); // Перепроверяем авторизацию
-  }
-});
-
-// 🔥 Следим за изменениями роута - перепроверяем авторизацию
-watch(() => router.currentRoute.value.path, (newPath) => {
-  console.log("Route changed to:", newPath);
-  // При каждом изменении маршрута проверяем авторизацию
-  checkAuth();
-});
-
-// Выход
-function handleLogout() {
-  console.log("Logout called");
-  localStorage.removeItem("token");
-  checkAuth(); // Немедленно обновляем состояние
-  router.push("/login");
-}
-</script>
-
 <template>
   <div id="app">
     <router-view
         :isLoggedIn="isLoggedIn"
-        :handleLogout="handleLogout"
+        :token="token"
+        :currentUser="currentUser"
+        @login="handleLogin"
+        @logout="handleLogout"
     />
   </div>
 </template>
+
+<script setup>
+import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { decodeJwt } from './utils/decodeJwt';
+
+const router = useRouter();
+const token = ref(null);
+const isLoggedIn = ref(false);
+const currentUser = ref(null);
+
+function checkAuth() {
+  token.value = localStorage.getItem("token");
+  isLoggedIn.value = !!token.value;
+
+  if (token.value) {
+    const decoded = decodeJwt(token.value);
+    currentUser.value = decoded?.sub || null;
+  } else {
+    currentUser.value = null;
+  }
+
+  console.log("Auth checked:", {
+    isLoggedIn: isLoggedIn.value,
+    currentUser: currentUser.value,
+    token: token.value ? token.value.substring(0, 20) + '...' : null
+  });
+}
+
+function handleLogin(authData) {
+  console.log('Handle login called with:', authData);
+  localStorage.setItem("token", authData.token);
+  checkAuth();
+}
+
+function handleLogout() {
+  localStorage.removeItem("token");
+  checkAuth();
+  router.push("/login");
+}
+
+onMounted(() => {
+  checkAuth();
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key === "token") {
+    checkAuth();
+  }
+});
+
+watch(() => router.currentRoute.value.path, () => {
+  checkAuth();
+});
+</script>

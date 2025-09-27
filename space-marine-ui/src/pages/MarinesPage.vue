@@ -2,16 +2,14 @@
   <div class="container mt-4">
     <h1 class="space-marines-title">Space Marines</h1>
 
-    <!-- Панель кнопок -->
     <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
-      <!-- Исправленная кнопка -->
       <button class="btn btn-primary" @click="openCreateModal">
         Create SpaceMarine
       </button>
 
-      <button class="btn btn-secondary">Sum health</button>
-      <button class="btn btn-secondary">Avg health</button>
-      <button class="btn btn-secondary">Min coordinates</button>
+      <button class="btn btn-secondary" @click="sumHealth">Sum health</button>
+      <button class="btn btn-secondary" @click="avgHealth">Avg health</button>
+      <button class="btn btn-secondary" @click="minCoordinates">Min coordinates</button>
       <button class="btn btn-warning" @click="openAddToChapter">
         Add marine to chapter
       </button>
@@ -28,6 +26,7 @@
       </button>
     </div>
 
+    <!-- таблица -->
     <MarineTable
         :marines="filteredMarines"
         @edit="openEditModal"
@@ -35,15 +34,39 @@
         @view="viewDetails"
     />
 
-    <!-- Create / Edit Marine -->
+    <!-- пагинация -->
+    <nav v-if="totalPages > 1" class="mt-3">
+      <ul class="pagination">
+        <li class="page-item" :class="{ disabled: currentPage === 0 }">
+          <button class="page-link" @click="changePage(currentPage - 1)">Prev</button>
+        </li>
+        <li
+            v-for="page in totalPages"
+            :key="page"
+            class="page-item"
+            :class="{ active: currentPage === page - 1 }"
+        >
+          <button class="page-link" @click="changePage(page - 1)">
+            {{ page }}
+          </button>
+        </li>
+        <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+          <button class="page-link" @click="changePage(currentPage + 1)">Next</button>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- форма -->
     <MarineForm
         v-if="showForm"
         :marine="selectedMarine"
+        :chapters="chapters"
+        :token="token"
         @close="closeForm"
-        @save="refreshMarines"
+        @save="saveMarine"
     />
 
-    <!-- Add Marine to Chapter -->
+    <!-- модалки (Add to Chapter, Dissolve Chapter) -->
     <div v-if="showAddToChapter" class="modal-overlay">
       <div class="modal-window">
         <h5>Add Marine to Chapter</h5>
@@ -60,7 +83,6 @@
       </div>
     </div>
 
-    <!-- Dissolve Chapter -->
     <div v-if="showDissolveChapter" class="modal-overlay">
       <div class="modal-window">
         <h5>Dissolve Chapter</h5>
@@ -74,122 +96,286 @@
       </div>
     </div>
 
-    <!-- Результаты операций -->
+    <!-- уведомления -->
     <div v-if="operationResult" class="alert alert-info mt-3">
       {{ operationResult }}
       <button class="btn-close float-end" @click="operationResult = ''"></button>
     </div>
   </div>
+
+  <div v-if="showDetailsModal" class="modal-overlay">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h5>Space Marine Details</h5>
+        <button class="btn-close" @click="showDetailsModal = false"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Name:</strong> {{ selectedMarineDetails.name }}</p>
+        <p><strong>Coordinates:</strong> X={{ selectedMarineDetails.coordinates.x }}, Y={{ selectedMarineDetails.coordinates.y }}</p>
+        <p><strong>Health:</strong> {{ selectedMarineDetails.health }}</p>
+        <p><strong>Loyal:</strong> {{ selectedMarineDetails.loyal ? "Yes" : "No" }}</p>
+        <p><strong>Category:</strong> {{ selectedMarineDetails.category }}</p>
+        <p><strong>Achievements:</strong> {{ selectedMarineDetails.achievements }}</p>
+
+        <hr>
+
+        <p><strong>Chapter Name:</strong> {{ selectedMarineDetails.chapter?.name || "N/A" }}</p>
+        <p><strong>Parent Legion:</strong> {{ selectedMarineDetails.chapter?.parentLegion || "N/A" }}</p>
+        <p><strong>World:</strong> {{ selectedMarineDetails.chapter?.world || "N/A" }}</p>
+      </div>
+    </div>
+  </div>
 </template>
 
-<script>
+
+<script setup>
+import { ref, computed, watch, onMounted, toRaw } from 'vue';
+import { useRouter } from 'vue-router';
 import MarineTable from '../components/MarineTable.vue';
 import MarineForm from '../components/MarineForm.vue';
 
-export default {
-  props: {
-    isLoggedIn: Boolean,
-    handleLogout: Function
-  },
-  components: { MarineTable, MarineForm },
-  data() {
-    return {
-      marines: [],
-      chapters: [], // заглушка, позже из API
-      search: '',
-      showForm: false,
-      selectedMarine: null,
-      showAddToChapter: false,
-      showDissolveChapter: false,
-      selectedMarineId: null,
-      selectedChapterId: null,
-      operationResult: ''
-    };
-  },
-  computed: {
-    filteredMarines() {
-      if (!this.search) return this.marines;
-      return this.marines.filter(m =>
-          m.name.includes(this.search) ||
-          (m.chapter?.name?.includes(this.search)) ||
-          (m.chapter?.parentLegion?.includes(this.search)) ||
-          (m.chapter?.world?.includes(this.search)) ||
-          (m.achievements?.includes(this.search))
-      );
-    }
-  },
-  methods: {
-    openCreateModal() {
-      this.selectedMarine = null;
-      this.showForm = true;
-    },
-    openEditModal(marine) {
-      this.selectedMarine = marine;
-      this.showForm = true;
-    },
-    closeForm() {
-      this.showForm = false;
-    },
-    refreshMarines() {
-      // Заглушка: подгрузка с сервера
-      this.marines = [
-        { id:1, name:'Marine 1', coordinates:{x:1,y:2}, creationDate:'2025-01-01', chapter:{name:'Alpha'}, health:100, loyal:true, achievements:'None', category:'SCOUT' }
-      ];
-    },
-    confirmDelete(marine) {
-      if (confirm(`Удалить ${marine.name}?`)) { /* DELETE API */ }
-    },
-    viewDetails(marine) { /* Можно показать детальную панель */ },
+const router = useRouter();
 
-    // Спецоперации
-    sumHealth() { this.operationResult = 'Sum health: 1000 (API заглушка)'; },
-    avgHealth() { this.operationResult = 'Avg health: 200 (API заглушка)'; },
-    minCoordinates() { this.operationResult = 'Min coordinates: Marine 1 (API заглушка)'; },
+const props = defineProps({
+  isLoggedIn: Boolean,
+  token: String,
+  currentUser: String
+});
 
-    // Диалог добавления
-    openAddToChapter() {
-      this.showAddToChapter = true;
-      this.selectedMarineId = this.marines[0]?.id || null;
-      this.selectedChapterId = this.chapters[0]?.id || null;
-    },
-    assignMarine() {
-      // POST /api/space-marines/{id}/assign-chapter?chapterId=...
-      this.operationResult = `Marine ID ${this.selectedMarineId} assigned to Chapter ID ${this.selectedChapterId}`;
-      this.showAddToChapter = false;
-    },
+const emit = defineEmits(['logout']);
 
-    // Диалог Dissolve
-    openDissolveChapter() {
-      this.showDissolveChapter = true;
-      this.selectedChapterId = this.chapters[0]?.id || null;
-    },
-    dissolveChapter() {
-      // POST /api/chapters/{id}/dissolve
-      this.operationResult = `Chapter ID ${this.selectedChapterId} dissolved`;
-      this.showDissolveChapter = false;
-    }
-  },
-  mounted() {
-    console.log("MarinesPage mounted, isLoggedIn:", this.isLoggedIn);
+// Реактивные данные
+const marines = ref([]);
+const chapters = ref([]);
+const search = ref('');
+const showForm = ref(false);
+const selectedMarine = ref(null);
+const showAddToChapter = ref(false);
+const showDissolveChapter = ref(false);
+const selectedMarineId = ref(null);
+const selectedChapterId = ref(null);
+const operationResult = ref('');
+const currentPage = ref(0);
+const totalPages = ref(0);
+const pageSize = ref(5);
+const selectedMarineDetails = ref(null);
+const showDetailsModal = ref(false);
 
-    // ✅ Защита на случай если компонент все же загрузился
-    if (!this.isLoggedIn) {
-      console.warn("Not authorized! Redirecting...");
-      this.$router.push("/login");
-    }
-  },
+async function loadChapter(chapterId) {
+  try {
+    const res = await fetch(`http://localhost:8080/api/chapters/${chapterId}`, {
+      headers: { "Authorization": `Bearer ${props.token}` }
+    });
+    if (!res.ok) throw new Error('Failed to load chapter');
+    return await res.json();
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
 
-  watch: {
-    isLoggedIn(newVal) {
-      console.log("MarinesPage isLoggedIn changed to:", newVal);
+function viewDetails(marine) {
+  selectedMarineDetails.value = { ...toRaw(marine) };
+  showDetailsModal.value = true;
+}
+// Computed properties
+const filteredMarines = computed(() => {
+  if (!search.value) return marines.value;
+  return marines.value.filter(m =>
+      m.name?.includes(search.value) ||
+      m.chapter?.name?.includes(search.value) ||
+      m.chapter?.parentLegion?.includes(search.value) ||
+      m.chapter?.world?.includes(search.value) ||
+      m.achievements?.includes(search.value)
+  );
+});
 
-      // ✅ Если авторизация пропала - перенаправляем
-      if (!newVal) {
-        this.$router.push("/login");
+// Methods
+async function refreshMarines() {
+  if (!props.token) {
+    console.error('No token available');
+    return;
+  }
+
+  try {
+    console.log('Refreshing marines with token:', props.token.substring(0, 20) + '...');
+    const res = await fetch(`http://localhost:8080/api/space-marines?page=${currentPage.value}&size=${pageSize.value}`, {
+      headers: {
+        "Authorization": `Bearer ${props.token}`,
+        "Content-Type": "application/json"
       }
+    });
+
+    console.log('Response status:', res.status);
+
+    if (res.status === 403) {
+      handleLogout();
+      return;
     }
-  },
-};
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log('Marines data received:', data);
+    marines.value = data.content || [];
+    totalPages.value = data.totalPages || 0;
+
+  } catch (err) {
+    console.error('Error loading marines:', err);
+    operationResult.value = "Ошибка загрузки Space Marines";
+  }
+}
+
+async function refreshChapters() {
+  if (!props.token) {
+    console.error('No token available for chapters');
+    return;
+  }
+
+  try {
+    const res = await fetch('http://localhost:8080/api/chapters', {
+      headers: {
+        "Authorization": `Bearer ${props.token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.status === 403) {
+      handleLogout();
+      return;
+    }
+
+    if (res.ok) {
+      chapters.value = await res.json();
+      console.log('Chapters loaded:', chapters.value.length);
+    }
+  } catch (err) {
+    console.error('Error loading chapters:', err);
+    operationResult.value = "Ошибка загрузки глав";
+  }
+}
+
+function handleLogout() {
+  emit('logout');
+}
+
+function changePage(page) {
+  if (page >= 0 && page < totalPages.value) {
+    currentPage.value = page;
+    refreshMarines();
+  }
+}
+
+function openCreateModal() {
+  selectedMarine.value = null;
+  showForm.value = true;
+}
+
+function openEditModal(marine) {
+  selectedMarine.value = {
+    ...marine,
+    coordinates: { ...marine.coordinates }
+  };
+  showForm.value = true;
+}
+
+function closeForm() {
+  showForm.value = false;
+}
+
+async function saveMarine(payload) {
+  try {
+    const url = payload.id
+        ? `http://localhost:8080/api/space-marines/${payload.id}`
+        : 'http://localhost:8080/api/space-marines';
+    const method = payload.id ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${props.token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to save marine: ${res.status} - ${text}`);
+    }
+
+    operationResult.value = payload.id ? "Marine updated successfully" : "Marine created successfully";
+    showForm.value = false;
+    await refreshMarines();
+    await refreshChapters();
+
+  } catch (err) {
+    // Используем правильную переменную err
+    if (err.message.includes("403")) {
+      alert("You cannot edit this marine because you are not the owner.");
+    } else {
+      console.error("Failed to save marine:", err);
+      operationResult.value = err.message;
+    }
+  }
+}
+
+
+
+async function confirmDelete(marine) {
+  if (!marine.owner || marine.owner !== props.currentUser) {
+    alert("Можно удалять только свои объекты!");
+    return;
+  }
+  if (confirm(`Удалить ${marine.name}?`)) {
+    try {
+      const res = await fetch(`http://localhost:8080/api/space-marines/${marine.id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${props.token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      if (res.ok) {
+        operationResult.value = `${marine.name} удалён`;
+        refreshMarines();
+      } else {
+        operationResult.value = "Ошибка удаления";
+      }
+    } catch (err) {
+      console.error(err);
+      operationResult.value = "Ошибка удаления";
+    }
+  }
+}
+
+// Watch для отслеживания изменений токена
+watch(() => props.token, (newToken) => {
+  if (newToken && props.isLoggedIn) {
+    console.log('Token changed, refreshing data...');
+    refreshMarines();
+    refreshChapters();
+  }
+});
+
+onMounted(() => {
+  console.log('MarinesPage mounted:', {
+    isLoggedIn: props.isLoggedIn,
+    token: props.token ? props.token.substring(0, 20) + '...' : 'null',
+    currentUser: props.currentUser
+  });
+
+  if (!props.isLoggedIn || !props.token) {
+    console.log('Redirecting to login - missing auth data');
+    router.push("/login");
+    return;
+  }
+
+  refreshMarines();
+  refreshChapters();
+});
 </script>
 
 <style scoped>

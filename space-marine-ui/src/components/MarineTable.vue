@@ -8,8 +8,6 @@
       <th>Y</th>
       <th>Creation Date</th>
       <th>Chapter</th>
-      <th>Parent Legion</th>
-      <th>World</th>
       <th>Health</th>
       <th>Loyal</th>
       <th>Achievements</th>
@@ -25,8 +23,6 @@
       <td>{{ marine.coordinates.y }}</td>
       <td>{{ marine.creationDate }}</td>
       <td>{{ marine.chapter?.name }}</td>
-      <td>{{ marine.chapter?.parentLegion }}</td>
-      <td>{{ marine.chapter?.world }}</td>
       <td>{{ marine.health }}</td>
       <td>{{ marine.loyal }}</td>
       <td>{{ marine.achievements }}</td>

@@ -2,6 +2,7 @@ package ru.itmo.is.space_marine_backend.dto.response;
 
 import lombok.Data;
 import ru.itmo.is.space_marine_backend.entity.AstartesCategory;
+import ru.itmo.is.space_marine_backend.entity.User;
 
 import java.time.LocalDateTime;
 
@@ -16,4 +17,5 @@ public class SpaceMarineResponseDTO {
     private String achievements;
     private AstartesCategory category;
     private ChapterResponseDTO chapter;
+    private UserResponseDTO owner;
 }
