@@ -18,12 +18,8 @@ public class JwtProvider {
     public JwtProvider(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
 
-        // Если секрет в Base64
         byte[] decodedKey = Base64.getDecoder().decode(jwtProperties.getSecret());
         this.key = Keys.hmacShaKeyFor(decodedKey);
-
-        // Если секрет обычный текст:
-        // this.key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
     }
 
     public String generateToken(String username) {
@@ -42,7 +38,7 @@ public class JwtProvider {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
-                .parseClaimsJws(token)  // parseClaimsJws для подписанных JWT
+                .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
     }

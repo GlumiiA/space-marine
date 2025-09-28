@@ -4,7 +4,7 @@ import jakarta.validation.constraints.*;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import ru.itmo.is.space_marine_backend.entity.AstartesCategory;
-import ru.itmo.is.space_marine_backend.entity.User;
+
 
 @Data
 public class SpaceMarineUpdateDTO {

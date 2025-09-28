@@ -126,12 +126,9 @@ public enum AstartesCategory {
 
 ### Кнопки
 - **Create SpaceMarine** — открывает модальное окно.
-- **Специальные операции** — кнопки рядом с Create:
-  - Sum health — GET `/api/space-marines/ops/sum-health`
-  - Avg health — GET `/api/space-marines/ops/avg-health`
-  - Min coordinates — GET `/api/space-marines/ops/min-coordinates`
-  - Add marine to chapter — диалог выбора marine и chapter → POST `/api/space-marines/{id}/assign-chapter?chapterId=...`
-  - Dissolve chapter — диалог выбора chapter → POST `/api/chapters/{id}/dissolve`
+- **Специальные операции** — кнопка-переключатель рядом с Create:
+  - Переключает между режимом "Таблица" и "Операции"
+  - В режиме "Операции" отображается панель со специальными функциями
 
 ---
 
@@ -139,6 +136,43 @@ public enum AstartesCategory {
 - Клик по строке → открывает правую панель с деталями.
 - **Edit** → открывает модальное окно редактирования.
 - **Delete** → подтверждение (попап). При запрещенном удалении — сообщение с причиной.
+
+---
+
+## Панель специальных операций
+**Режим отображения:** переключается кнопкой "Special Operations" вместо таблицы
+
+### Операции:
+- **Sum health** 
+  - Кнопка "Calculate" → GET `/api/space-marines/ops/sum-health`
+  - Результат отображается в виде: "Total health sum: {value}"
+  
+- **Avg health**
+  - Кнопка "Calculate" → GET `/api/space-marines/ops/avg-health`
+  - Результат: "Average health: {value}"
+
+- **Min coordinates**
+  - Кнопка "Find" → GET `/api/space-marines/ops/min-coordinates`
+  - Результат отображает объект SpaceMarine с минимальными координатами
+  - Формат: "Min coordinates: ID {id}, Name: {name}, Coordinates: ({x}, {y})"
+
+- **Add marine to chapter**
+  - Диалог с выбором:
+    - Выпадающий список SpaceMarines (загружается с сервера)
+    - Выпадающий список Chapters (загружается с сервера)
+  - Кнопка "Assign" → POST `/api/space-marines/{id}/assign-chapter?chapterId=...`
+  - Результат: успешное сообщение или ошибка
+
+- **Dissolve chapter**
+  - Диалог с выбором Chapter из выпадающего списка
+  - Кнопка "Dissolve" → POST `/api/chapters/{id}/dissolve`
+  - Подтверждение действия с предупреждением
+  - Результат: сообщение об успехе или ошибке
+
+### Навигация:
+- Кнопка "Back to Table" для возврата к основному виду таблицы
+- Все результаты операций отображаются в той же панели
+- Состояние панели сохраняется при переключении между операциями
 
 ---
 
@@ -175,29 +209,9 @@ public enum AstartesCategory {
 
 ---
 
-## Специальные операции
-**Кнопки:** рядом с Create SpaceMarine  
-- **Sum health**
-- **Avg health**
-- **Min coordinates** (минимальный `x`, при равенстве `y`)
-- **Add marine to chapter** — диалог выбора marine и chapter
-- **Dissolve chapter** — диалог выбора chapter  
-**Результаты операций:** модал или блок result
-
----
-
 ## Сообщения об ошибках
 - Валидация полей: конкретная причина (`name не может быть пустым`, `health > 0`, `coordinates.x обязателен`)
 - Серверные ошибки (409, 400, 500): toast + окно с подробностями
-
----
-
-## Реальное время
-- Технология: WebSocket + STOMP или SSE
-- Топики:
-  - `/topic/space-marines/changes` — события CRUD {type: CREATED|UPDATED|DELETED, id, payload}
-  - `/topic/chapters/changes`
-- Клиенты подписываются на топики → обновляют таблицу/карточки/модалы
 
 ---
 
@@ -220,6 +234,16 @@ public enum AstartesCategory {
 - Опция Register (если разрешена)
 - После входа: JWT или сессия в localStorage/cookie, Authorization: Bearer <token>
 - Edit/Delete на главной странице только для owner
+---
+
+## UI: страница авторизации
+**Экран Login**
+- Поля: Username (обязательное), Password (обязательное, password)
+- Кнопка Login
+- Ошибка 401: «Неверный логин или пароль»
+- Опция Register (если разрешена)
+- После входа: JWT или сессия в localStorage/cookie, Authorization: Bearer <token>
+- Edit/Delete на главной странице только для owner
 
 
 # Backend Specification — SpaceMarine IS
@@ -232,7 +256,6 @@ public enum AstartesCategory {
   - `repository/` — JPA-репозитории.
   - `entity/` — доменные сущности.
   - `dto/` — объекты запросов/ответов.
-  - `mapper/` — преобразование DTO ↔ Entity.
   - `auth/` — аутентификация и авторизация.
   - `exception/` — глобальный обработчик ошибок.
 - **Миграции БД**: Flyway (схема + SQL-функции).  
@@ -347,21 +370,3 @@ public enum AstartesCategory {
   - `409` — конфликт (связанные объекты, блокировки).
 - Ответ: JSON с сообщением и деталями ошибок.
 
----
-
-## 9. Тестирование
-- Unit-тесты для сервисов.  
-- Интеграционные тесты (SpringBootTest + PostgreSQL Testcontainers).  
-- Тесты REST API (MockMvc).  
-- Проверка SQL-функций.  
-- Тесты безопасности (роль, владелец, доступы).  
-
----
-
-## 10. Настройки
-- **БД**: PostgreSQL (host `pg`, db `studs`).  
-- **Миграции**: Flyway.  
-- **Конфигурация**: `application.yml`:
-  - datasource (url, user, password),
-  - jpa (ddl-auto=none, show-sql=false),
-  - jwt (secret, expiration).  

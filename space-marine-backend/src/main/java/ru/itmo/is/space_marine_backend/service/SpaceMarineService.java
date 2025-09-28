@@ -18,12 +18,6 @@ public interface SpaceMarineService {
 
     void deleteSpaceMarine(Long id, String username);
 
-    Double calculateTotalHealth();
-
-    Double calculateAverageHealth();
-
-    SpaceMarineResponseDTO findMarineWithMinCoordinates();
-
     List<SpaceMarineResponseDTO> findByCategory(AstartesCategory category);
 
     List<SpaceMarineResponseDTO> findByHealthGreaterThanEqual(Double health);
@@ -33,4 +27,8 @@ public interface SpaceMarineService {
     List<SpaceMarineResponseDTO> findByChapterName(String chapterName);
 
     Page<SpaceMarineResponseDTO> getAllSpaceMarines(Pageable pageable);
+
+    SpaceMarineResponseDTO assignMarineToChapter(Long marineId, Long chapterId, String username);
+
+    Page<SpaceMarineResponseDTO> getAllFilteredAndSorted(int page, int size, String sortBy, String sortDir, String filterField, String filterValue);
 }

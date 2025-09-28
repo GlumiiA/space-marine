@@ -3,52 +3,43 @@
     <h1 class="space-marines-title">Space Marines</h1>
 
     <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
-      <button class="btn btn-primary" @click="openCreateModal">
-        Create SpaceMarine
+      <button class="btn btn-primary" @click="openCreateModal">Create SpaceMarine</button>
+
+      <button class="btn btn-info" @click="toggleOpsPanel">
+        {{ showOpsPanel ? "Back to Table" : "Special Operations" }}
       </button>
 
-      <button class="btn btn-secondary" @click="sumHealth">Sum health</button>
-      <button class="btn btn-secondary" @click="avgHealth">Avg health</button>
-      <button class="btn btn-secondary" @click="minCoordinates">Min coordinates</button>
-      <button class="btn btn-warning" @click="openAddToChapter">
-        Add marine to chapter
-      </button>
-      <button class="btn btn-danger" @click="openDissolveChapter">
-        Dissolve chapter
-      </button>
+      <button class="btn btn-warning" @click="openAddToChapter">Add marine to chapter</button>
+      <button class="btn btn-danger" @click="openDissolveChapter">Dissolve chapter</button>
 
-      <button
-          v-if="isLoggedIn"
-          class="btn btn-outline-danger ms-auto"
-          @click="handleLogout"
-      >
+      <button v-if="isLoggedIn" class="btn btn-outline-danger ms-auto" @click="handleLogout">
         Logout
       </button>
     </div>
 
+    <!-- спецоперации -->
+    <SpecialOperations v-if="showOpsPanel" :token="token" />
+
     <!-- таблица -->
     <MarineTable
-        :marines="filteredMarines"
+        v-if="!showOpsPanel"
+        :marines="marines"
+        :sortKey="sortKey"
+        :sortDir="sortDir"
+        @changeSort="handleChangeSort"
+        @view="viewDetails"
         @edit="openEditModal"
         @delete="confirmDelete"
-        @view="viewDetails"
     />
 
     <!-- пагинация -->
-    <nav v-if="totalPages > 1" class="mt-3">
+    <nav v-if="!showOpsPanel && totalPages > 1" class="mt-3">
       <ul class="pagination">
         <li class="page-item" :class="{ disabled: currentPage === 0 }">
           <button class="page-link" @click="changePage(currentPage - 1)">Prev</button>
         </li>
-        <li
-            v-for="page in totalPages"
-            :key="page"
-            class="page-item"
-            :class="{ active: currentPage === page - 1 }"
-        >
-          <button class="page-link" @click="changePage(page - 1)">
-            {{ page }}
-          </button>
+        <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: currentPage === page - 1 }">
+          <button class="page-link" @click="changePage(page - 1)">{{ page }}</button>
         </li>
         <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
           <button class="page-link" @click="changePage(currentPage + 1)">Next</button>
@@ -56,24 +47,24 @@
       </ul>
     </nav>
 
-    <!-- форма -->
     <MarineForm
-        v-if="showForm"
+        v-else-if="showForm"
         :marine="selectedMarine"
         :chapters="chapters"
         :token="token"
-        @close="closeForm"
         @save="saveMarine"
+        @close="closeForm"
     />
-
-    <!-- модалки (Add to Chapter, Dissolve Chapter) -->
+    <!-- Add to Chapter modal -->
     <div v-if="showAddToChapter" class="modal-overlay">
       <div class="modal-window">
         <h5>Add Marine to Chapter</h5>
         <select v-model="selectedMarineId" class="form-select mb-2">
+          <option disabled value="">-- select marine --</option>
           <option v-for="m in marines" :key="m.id" :value="m.id">{{ m.name }} (ID: {{ m.id }})</option>
         </select>
         <select v-model="selectedChapterId" class="form-select mb-2">
+          <option disabled value="">-- select chapter --</option>
           <option v-for="c in chapters" :key="c.id" :value="c.id">{{ c.name }} (ID: {{ c.id }})</option>
         </select>
         <div class="d-flex gap-2">
@@ -83,15 +74,29 @@
       </div>
     </div>
 
+    <!-- Dissolve Chapter modal -->
     <div v-if="showDissolveChapter" class="modal-overlay">
       <div class="modal-window">
-        <h5>Dissolve Chapter</h5>
-        <select v-model="selectedChapterId" class="form-select mb-2">
-          <option v-for="c in chapters" :key="c.id" :value="c.id">{{ c.name }} (ID: {{ c.id }})</option>
-        </select>
-        <div class="d-flex gap-2">
-          <button class="btn btn-danger" @click="dissolveChapter">Dissolve</button>
-          <button class="btn btn-secondary" @click="showDissolveChapter = false">Close</button>
+        <div class="modal-header">
+          <h5>Dissolve Chapter</h5>
+          <button class="btn-close" @click="closeDissolveChapter"></button>
+        </div>
+
+        <div class="modal-body">
+          <label class="form-label">Select chapter to dissolve</label>
+          <select v-model="selectedChapterForDissolve" class="form-select mb-2">
+            <option disabled value="">-- select chapter --</option>
+            <option v-for="c in chapters" :key="c.id" :value="c.id">{{ c.name }} (ID: {{ c.id }})</option>
+          </select>
+
+          <p class="muted small">Chapter can be dissolved only if it has no marines assigned.</p>
+
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-danger" :disabled="!selectedChapterForDissolve" @click="confirmDissolve">
+              Dissolve
+            </button>
+            <button class="btn btn-secondary" @click="closeDissolveChapter">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
@@ -103,6 +108,7 @@
     </div>
   </div>
 
+  <!-- детали -->
   <div v-if="showDetailsModal" class="modal-overlay">
     <div class="modal-window">
       <div class="modal-header">
@@ -125,14 +131,15 @@
       </div>
     </div>
   </div>
-</template>
 
+</template>
 
 <script setup>
 import { ref, computed, watch, onMounted, toRaw } from 'vue';
 import { useRouter } from 'vue-router';
 import MarineTable from '../components/MarineTable.vue';
 import MarineForm from '../components/MarineForm.vue';
+import SpecialOperations from '../components/SpecialOperations.vue';
 
 const router = useRouter();
 
@@ -144,145 +151,96 @@ const props = defineProps({
 
 const emit = defineEmits(['logout']);
 
-// Реактивные данные
+// state
 const marines = ref([]);
 const chapters = ref([]);
-const search = ref('');
 const showForm = ref(false);
 const selectedMarine = ref(null);
 const showAddToChapter = ref(false);
-const showDissolveChapter = ref(false);
+const showDissolveChapter = ref(false); // <-- обязательно объявлено
 const selectedMarineId = ref(null);
 const selectedChapterId = ref(null);
+const selectedChapterForDissolve = ref(null); // chapter chosen for dissolve
 const operationResult = ref('');
 const currentPage = ref(0);
 const totalPages = ref(0);
 const pageSize = ref(5);
 const selectedMarineDetails = ref(null);
 const showDetailsModal = ref(false);
+const showOpsPanel = ref(false);
 
-async function loadChapter(chapterId) {
-  try {
-    const res = await fetch(`http://localhost:8080/api/chapters/${chapterId}`, {
-      headers: { "Authorization": `Bearer ${props.token}` }
-    });
-    if (!res.ok) throw new Error('Failed to load chapter');
-    return await res.json();
-  } catch (err) {
-    console.error(err);
-    return null;
+const sortKey = ref("id");       // по какому полю сортируем
+const sortDir = ref("asc");      // asc / desc
+
+function handleChangeSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortDir.value = 'asc';
   }
+  refreshMarines();
+}
+
+// helpers
+function toggleOpsPanel() {
+  showOpsPanel.value = !showOpsPanel.value;
 }
 
 function viewDetails(marine) {
   selectedMarineDetails.value = { ...toRaw(marine) };
   showDetailsModal.value = true;
 }
-// Computed properties
-const filteredMarines = computed(() => {
-  if (!search.value) return marines.value;
-  return marines.value.filter(m =>
-      m.name?.includes(search.value) ||
-      m.chapter?.name?.includes(search.value) ||
-      m.chapter?.parentLegion?.includes(search.value) ||
-      m.chapter?.world?.includes(search.value) ||
-      m.achievements?.includes(search.value)
-  );
-});
 
-// Methods
 async function refreshMarines() {
-  if (!props.token) {
-    console.error('No token available');
-    return;
-  }
-
+  if (!props.token) return;
   try {
-    console.log('Refreshing marines with token:', props.token.substring(0, 20) + '...');
-    const res = await fetch(`http://localhost:8080/api/space-marines?page=${currentPage.value}&size=${pageSize.value}`, {
-      headers: {
-        "Authorization": `Bearer ${props.token}`,
-        "Content-Type": "application/json"
-      }
+    const url = `http://localhost:8080/api/space-marines?page=${currentPage.value}&size=${pageSize.value}&sortBy=${sortKey.value}&sortDir=${sortDir.value}`;
+    const res = await fetch(url, {
+      headers: { "Authorization": `Bearer ${props.token}` }
     });
 
-    console.log('Response status:', res.status);
-
-    if (res.status === 403) {
-      handleLogout();
-      return;
-    }
-
     if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+      if (res.status === 403) { handleLogout(); return; }
+      throw new Error(`HTTP ${res.status}`);
     }
 
     const data = await res.json();
-    console.log('Marines data received:', data);
     marines.value = data.content || [];
     totalPages.value = data.totalPages || 0;
-
-  } catch (err) {
-    console.error('Error loading marines:', err);
+  } catch (e) {
+    console.error(e);
     operationResult.value = "Ошибка загрузки Space Marines";
   }
 }
 
 async function refreshChapters() {
-  if (!props.token) {
-    console.error('No token available for chapters');
-    return;
-  }
-
+  if (!props.token) return;
   try {
     const res = await fetch('http://localhost:8080/api/chapters', {
-      headers: {
-        "Authorization": `Bearer ${props.token}`,
-        "Content-Type": "application/json"
-      }
+      headers: { "Authorization": `Bearer ${props.token}` }
     });
-
-    if (res.status === 403) {
-      handleLogout();
-      return;
+    if (!res.ok) {
+      if (res.status === 403) { handleLogout(); return; }
+      throw new Error(`HTTP ${res.status}`);
     }
-
-    if (res.ok) {
-      chapters.value = await res.json();
-      console.log('Chapters loaded:', chapters.value.length);
-    }
-  } catch (err) {
-    console.error('Error loading chapters:', err);
+    chapters.value = await res.json();
+  } catch (e) {
+    console.error(e);
     operationResult.value = "Ошибка загрузки глав";
   }
 }
 
-function handleLogout() {
-  emit('logout');
-}
-
-function changePage(page) {
-  if (page >= 0 && page < totalPages.value) {
-    currentPage.value = page;
-    refreshMarines();
-  }
-}
-
-function openCreateModal() {
-  selectedMarine.value = null;
-  showForm.value = true;
-}
-
-function openEditModal(marine) {
-  selectedMarine.value = {
-    ...marine,
-    coordinates: { ...marine.coordinates }
-  };
-  showForm.value = true;
-}
-
-function closeForm() {
-  showForm.value = false;
+// user actions
+function handleLogout() { emit('logout'); }
+function changePage(page) { if (page >= 0 && page < totalPages.value) { currentPage.value = page; refreshMarines(); } }
+function openCreateModal() { selectedMarine.value = null; showForm.value = true; }
+function openEditModal(marine) { selectedMarine.value = { ...marine, coordinates: { ...marine.coordinates } }; showForm.value = true; }
+function closeForm() { showForm.value = false; }
+function openAddToChapter() {
+  showAddToChapter.value = true;
+  selectedMarineId.value = null;
+  selectedChapterId.value = null;
 }
 
 async function saveMarine(payload) {
@@ -323,56 +281,127 @@ async function saveMarine(payload) {
 }
 
 
-
-async function confirmDelete(marine) {
-  if (!marine.owner || marine.owner !== props.currentUser) {
-    alert("Можно удалять только свои объекты!");
+// Assign marine -> chapter
+async function assignMarine() {
+  if (!selectedMarineId.value || !selectedChapterId.value) {
+    alert("Please select both marine and chapter!");
     return;
   }
+
+  try {
+    const res = await fetch(
+        `http://localhost:8080/api/space-marines/${selectedMarineId.value}/assign-chapter?chapterId=${selectedChapterId.value}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${props.token}`,
+            "Content-Type": "application/json"
+          }
+        }
+    );
+
+    if (!res.ok) {
+      const msg = await handleErrorResponse(res);
+      operationResult.value = msg;
+      showAddToChapter.value = false;
+      return;
+    }
+
+    operationResult.value = "Marine successfully assigned to chapter!";
+    showAddToChapter.value = false;
+    await refreshMarines();
+    await refreshChapters();
+  } catch (err) {
+    console.error(err);
+    operationResult.value = "Network error while assigning marine";
+  }
+}
+
+// --- DISSOLVE chapter flow: open/close/confirm/dissolve ---
+function openDissolveChapter() {
+  // очистим выбор и откроем модалку
+  selectedChapterForDissolve.value = null;
+  showDissolveChapter.value = true;
+}
+function closeDissolveChapter() {
+  showDissolveChapter.value = false;
+  selectedChapterForDissolve.value = null;
+}
+
+async function confirmDissolve() {
+  if (!selectedChapterForDissolve.value) return;
+  const ok = confirm("Вы действительно хотите распустить эту главу? Это действие необратимо.");
+  if (!ok) return;
+  try {
+    const res = await fetch(`http://localhost:8080/api/chapters/${selectedChapterForDissolve.value}/dissolve`, {
+      method: 'POST',
+      headers: { "Authorization": `Bearer ${props.token}` }
+    });
+    if (!res.ok) {
+      const msg = await handleErrorResponse(res);
+      operationResult.value = msg;
+      closeDissolveChapter();
+      return;
+    }
+    operationResult.value = "Chapter dissolved successfully";
+    showDissolveChapter.value = false;
+    await refreshChapters();
+    await refreshMarines(); // на случай, если список изменилась
+  } catch (e) {
+    console.error(e);
+    operationResult.value = "Network error while dissolving chapter";
+  }
+}
+
+// delete marine
+async function confirmDelete(marine) {
   if (confirm(`Удалить ${marine.name}?`)) {
     try {
       const res = await fetch(`http://localhost:8080/api/space-marines/${marine.id}`, {
         method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${props.token}`,
-          "Content-Type": "application/json"
-        }
+        headers: { "Authorization": `Bearer ${props.token}` }
       });
       if (res.ok) {
         operationResult.value = `${marine.name} удалён`;
-        refreshMarines();
+        await refreshMarines();
       } else {
-        operationResult.value = "Ошибка удаления";
+        const msg = await handleErrorResponse(res);
+        operationResult.value = msg;
+        alert(msg);
       }
     } catch (err) {
       console.error(err);
-      operationResult.value = "Ошибка удаления";
+      operationResult.value = "Ошибка сети при удалении";
     }
   }
 }
 
-// Watch для отслеживания изменений токена
-watch(() => props.token, (newToken) => {
-  if (newToken && props.isLoggedIn) {
-    console.log('Token changed, refreshing data...');
-    refreshMarines();
-    refreshChapters();
+// common error formatter
+async function handleErrorResponse(res) {
+  let msg = `Ошибка: ${res.status}`;
+  try {
+    const data = await res.json();
+    // ищем полезное сообщение в теле ответа
+    if (data.message) msg = data.message;
+    else if (data.error) msg = data.error;
+    else if (data.timestamp && data.status && data.error) {
+      // стандартный Spring error -> вытащим короткое описание
+      msg = `${data.error}${data.message ? ': ' + data.message : ''}`;
+    }
+  } catch (_) {
+    const text = await res.text();
+    msg = text || msg;
   }
+  return msg;
+}
+
+// lifecycle
+watch(() => props.token, (newToken) => {
+  if (newToken && props.isLoggedIn) { refreshMarines(); refreshChapters(); }
 });
 
 onMounted(() => {
-  console.log('MarinesPage mounted:', {
-    isLoggedIn: props.isLoggedIn,
-    token: props.token ? props.token.substring(0, 20) + '...' : 'null',
-    currentUser: props.currentUser
-  });
-
-  if (!props.isLoggedIn || !props.token) {
-    console.log('Redirecting to login - missing auth data');
-    router.push("/login");
-    return;
-  }
-
+  if (!props.isLoggedIn || !props.token) { router.push("/login"); return; }
   refreshMarines();
   refreshChapters();
 });

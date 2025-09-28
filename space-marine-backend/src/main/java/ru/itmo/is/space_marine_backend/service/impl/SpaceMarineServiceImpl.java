@@ -2,7 +2,10 @@ package ru.itmo.is.space_marine_backend.service.impl;
 
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +15,7 @@ import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
 import ru.itmo.is.space_marine_backend.dto.response.*;
 import ru.itmo.is.space_marine_backend.entity.*;
 import ru.itmo.is.space_marine_backend.exception.EntityNotFoundException;
+import ru.itmo.is.space_marine_backend.filter.MarineFilterStrategyFactory;
 import ru.itmo.is.space_marine_backend.repository.ChapterRepository;
 import ru.itmo.is.space_marine_backend.repository.CoordinatesRepository;
 import ru.itmo.is.space_marine_backend.repository.SpaceMarineRepository;
@@ -29,15 +33,19 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     private final CoordinatesRepository coordinatesRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
+    private final MarineFilterStrategyFactory strategyFactory;
+
 
     public SpaceMarineServiceImpl(SpaceMarineRepository spaceMarineRepository,
                                   CoordinatesRepository coordinatesRepository,
                                   ChapterRepository chapterRepository,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  MarineFilterStrategyFactory strategyFactory) {
         this.spaceMarineRepository = spaceMarineRepository;
         this.coordinatesRepository = coordinatesRepository;
         this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
+        this.strategyFactory = strategyFactory;
     }
 
     private SpaceMarineResponseDTO mapToDto(SpaceMarine marine) {
@@ -50,7 +58,6 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         dto.setAchievements(marine.getAchievements());
         dto.setCategory(marine.getCategory());
 
-        // маппинг Coordinates
         if (marine.getCoordinates() != null) {
             dto.setCoordinates(new CoordinatesResponseDTO(
                     marine.getCoordinates().getX(),
@@ -58,7 +65,6 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
             ));
         }
 
-        // маппинг Chapter
         if (marine.getChapter() != null) {
             dto.setChapter(new ChapterResponseDTO(
                     marine.getChapter().getName(),
@@ -68,7 +74,6 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
             ));
         }
 
-        // маппинг Owner
         if (marine.getOwner() != null) {
             dto.setOwner(new UserResponseDTO(
                     marine.getOwner().getId(),
@@ -154,22 +159,6 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
 
         spaceMarineRepository.delete(marine);
     }
-    @Override
-    public Double calculateTotalHealth() {
-        return spaceMarineRepository.calculateTotalHealth();
-    }
-
-    @Override
-    public Double calculateAverageHealth() {
-        return spaceMarineRepository.calculateAverageHealth();
-    }
-
-    @Override
-    public SpaceMarineResponseDTO findMarineWithMinCoordinates() {
-        return spaceMarineRepository.findMarineWithMinCoordinates()
-                .map(this::mapToDto)
-                .orElseThrow(() -> new EntityNotFoundException("No marines found"));
-    }
 
     @Override
     public List<SpaceMarineResponseDTO> findByCategory(AstartesCategory category) {
@@ -202,6 +191,48 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     @Override
     public Page<SpaceMarineResponseDTO> getAllSpaceMarines(Pageable pageable) {
         return spaceMarineRepository.findAll(pageable)
-                .map(this::mapToDto); // здесь мапим каждую сущность в DTO
+                .map(this::mapToDto);
+    }
+
+    @Override
+    public SpaceMarineResponseDTO assignMarineToChapter(Long marineId, Long chapterId, String username) {
+        SpaceMarine marine = spaceMarineRepository.findById(marineId)
+                .orElseThrow(() -> new EntityNotFoundException("SpaceMarine not found with id " + marineId));
+
+        if (!marine.getOwner().getUsername().equals(username)) {
+            throw new SecurityException("You are not the owner of this SpaceMarine!");
+        }
+
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + chapterId));
+
+        marine.setChapter(chapter);
+        spaceMarineRepository.save(marine);
+
+        return mapToDto(marine);
+
+    }
+
+    @Override
+    public Page<SpaceMarineResponseDTO> getAllFilteredAndSorted(
+            int page, int size, String sortBy, String sortDir,
+            String filterField, String filterValue
+    ) {
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<SpaceMarine> spec = null;
+        if (filterField != null && filterValue != null) {
+            spec = strategyFactory.getSpecification(filterField, filterValue);
+        }
+
+        Page<SpaceMarine> marines = (spec != null)
+                ? spaceMarineRepository.findAll(spec, pageable)
+                : spaceMarineRepository.findAll(pageable);
+
+        return marines.map(this::mapToDto);
     }
 }

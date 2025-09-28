@@ -28,7 +28,7 @@
 
           <!-- Loyal -->
           <div class="form-check mb-2">
-            <input type="checkbox" v-model="form.loyal" class="form-check-input" id="loyal" required />
+            <input type="checkbox" v-model="form.loyal" class="form-check-input" id="loyal"/>
             <label class="form-check-label" for="loyal">Loyal</label>
           </div>
 
@@ -151,10 +151,10 @@ async function submitForm() {
     ...form.value,
     coordinates: { x: parseFloat(form.value.coordinates.x), y: parseFloat(form.value.coordinates.y) },
     health: parseFloat(form.value.health),
-    chapterId: Number(chapterId)   // 👈 гарантируем число
+    chapterId: Number(chapterId)
   };
 
-  emit('save', payload);
+  await emit('save', payload);
   emit('close');
 }
 </script>

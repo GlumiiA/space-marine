@@ -3,7 +3,6 @@ package ru.itmo.is.space_marine_backend.dto.request;
 import lombok.Data;
 import jakarta.validation.constraints.*;
 import ru.itmo.is.space_marine_backend.entity.AstartesCategory;
-import ru.itmo.is.space_marine_backend.entity.User;
 
 @Data
 public class SpaceMarineCreateDTO {

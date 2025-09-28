@@ -8,10 +8,10 @@ import lombok.Data;
 public class ChapterCreateDTO {
     @NotBlank
     @NotNull(message = "Name is required")
-    private String name; //Поле не может быть null, Строка не может быть пустой
+    private String name;
 
     @NotNull(message = "ParentLegion is required")
     private String parentLegion;
 
-    private String world; //Поле может быть null
+    private String world;
 }

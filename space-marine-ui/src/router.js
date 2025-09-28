@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MarinesPage from './pages/MarinesPage.vue';
-import SpecialOpsPage from './pages/SpecialOpsPage.vue';
 import LoginPage from './pages/LoginPage.vue';
 
 const routes = [
@@ -8,12 +7,6 @@ const routes = [
         path: '/',
         name: 'Marines',
         component: MarinesPage,
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/special-ops',
-        name: 'SpecialOps',
-        component: SpecialOpsPage,
         meta: { requiresAuth: true }
     },
     {

@@ -8,9 +8,8 @@ import java.util.List;
 
 @Repository
 public interface CoordinatesRepository extends JpaRepository<Coordinates, Integer> {
-    // поиск по X
+
     List<Coordinates> findByXGreaterThan(double x);
 
-    // поиск по Y
     List<Coordinates> findByYLessThan(double y);
 }

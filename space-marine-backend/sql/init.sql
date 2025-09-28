@@ -45,3 +45,24 @@ $$ LANGUAGE sql STABLE;
 CREATE OR REPLACE FUNCTION fn_avg_health() RETURNS DOUBLE PRECISION AS $$
 SELECT AVG(health) FROM space_marine;
 $$ LANGUAGE sql STABLE;
+-- сумма health
+CREATE OR REPLACE FUNCTION fn_sum_health()
+    RETURNS BIGINT AS $$
+SELECT COALESCE(SUM(health), 0) FROM space_marine;
+$$ LANGUAGE sql;
+
+-- среднее health
+CREATE OR REPLACE FUNCTION fn_avg_health()
+    RETURNS DOUBLE PRECISION AS $$
+SELECT COALESCE(AVG(health), 0) FROM space_marine;
+$$ LANGUAGE sql;
+
+-- marine с минимальными координатами
+CREATE OR REPLACE FUNCTION fn_min_coordinates()
+    RETURNS TABLE(id BIGINT, name VARCHAR, x DOUBLE PRECISION, y DOUBLE PRECISION) AS $$
+SELECT sm.id, sm.name, c.x, c.y
+FROM space_marine sm
+         JOIN coordinates c ON sm.coordinates_id = c.id
+ORDER BY c.x ASC, c.y ASC
+LIMIT 1;
+$$ LANGUAGE sql;
