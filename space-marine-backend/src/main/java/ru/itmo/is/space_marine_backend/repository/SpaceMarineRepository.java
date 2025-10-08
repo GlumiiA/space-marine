@@ -11,7 +11,6 @@ import ru.itmo.is.space_marine_backend.entity.SpaceMarine;
 
 import org.springframework.data.domain.Pageable;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long> {
@@ -19,7 +18,7 @@ public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long> 
 
     List<SpaceMarine> findByHealthGreaterThanEqual(Double health);
     List<SpaceMarine> findByCategory(AstartesCategory category);
-    List<SpaceMarine> findByLoyal(Boolean loyal);
+    List<SpaceMarine> findByIsLoyal(Boolean isLoyal);
     List<SpaceMarine> findByChapterNameContainingIgnoreCase(String chapterName);
     List<SpaceMarine> findByChapter(Chapter chapter);
 

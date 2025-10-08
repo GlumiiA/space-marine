@@ -1,0 +1,22 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <include file="db/changelog/changeset/001-create-enum-astartes-category.xml"/>
+    <include file="db/changelog/changeset/002-create-enum-user-role.xml"/>
+
+    <include file="db/changelog/changeset/010-create-app-user.xml"/>
+    <include file="db/changelog/changeset/011-create-chapter.xml"/>
+    <include file="db/changelog/changeset/012-create-coordinates.xml"/>
+    <include file="db/changelog/changeset/013-create-space-marine.xml"/>
+    <include file="db/changelog/changeset/014-add-marines-count-to-chapter.xml"/>
+    <include file="db/changelog/changeset/015-add-owner-id-to-space-marine.xml"/>
+
+    <include file="db/changelog/changeset/020-fn-sum-health.xml"/>
+    <include file="db/changelog/changeset/021-fn-avg-health.xml"/>
+    <include file="db/changelog/changeset/022-fn-min-coordinates.xml"/>
+    <include file="db/changelog/changeset/023-convert-category-to-varchar.xml"/>
+
+</databaseChangeLog>

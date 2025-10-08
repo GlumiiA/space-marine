@@ -151,16 +151,15 @@ const props = defineProps({
 
 const emit = defineEmits(['logout']);
 
-// state
 const marines = ref([]);
 const chapters = ref([]);
 const showForm = ref(false);
 const selectedMarine = ref(null);
 const showAddToChapter = ref(false);
-const showDissolveChapter = ref(false); // <-- обязательно объявлено
+const showDissolveChapter = ref(false);
 const selectedMarineId = ref(null);
 const selectedChapterId = ref(null);
-const selectedChapterForDissolve = ref(null); // chapter chosen for dissolve
+const selectedChapterForDissolve = ref(null);
 const operationResult = ref('');
 const currentPage = ref(0);
 const totalPages = ref(0);
@@ -169,8 +168,8 @@ const selectedMarineDetails = ref(null);
 const showDetailsModal = ref(false);
 const showOpsPanel = ref(false);
 
-const sortKey = ref("id");       // по какому полю сортируем
-const sortDir = ref("asc");      // asc / desc
+const sortKey = ref("id");
+const sortDir = ref("asc");
 
 function handleChangeSort(key) {
   if (sortKey.value === key) {
@@ -182,7 +181,7 @@ function handleChangeSort(key) {
   refreshMarines();
 }
 
-// helpers
+
 function toggleOpsPanel() {
   showOpsPanel.value = !showOpsPanel.value;
 }
@@ -270,7 +269,6 @@ async function saveMarine(payload) {
     await refreshChapters();
 
   } catch (err) {
-    // Используем правильную переменную err
     if (err.message.includes("403")) {
       alert("You cannot edit this marine because you are not the owner.");
     } else {
@@ -280,8 +278,6 @@ async function saveMarine(payload) {
   }
 }
 
-
-// Assign marine -> chapter
 async function assignMarine() {
   if (!selectedMarineId.value || !selectedChapterId.value) {
     alert("Please select both marine and chapter!");
@@ -317,7 +313,6 @@ async function assignMarine() {
   }
 }
 
-// --- DISSOLVE chapter flow: open/close/confirm/dissolve ---
 function openDissolveChapter() {
   // очистим выбор и откроем модалку
   selectedChapterForDissolve.value = null;
@@ -353,7 +348,6 @@ async function confirmDissolve() {
   }
 }
 
-// delete marine
 async function confirmDelete(marine) {
   if (confirm(`Удалить ${marine.name}?`)) {
     try {
@@ -376,16 +370,13 @@ async function confirmDelete(marine) {
   }
 }
 
-// common error formatter
 async function handleErrorResponse(res) {
   let msg = `Ошибка: ${res.status}`;
   try {
     const data = await res.json();
-    // ищем полезное сообщение в теле ответа
     if (data.message) msg = data.message;
     else if (data.error) msg = data.error;
     else if (data.timestamp && data.status && data.error) {
-      // стандартный Spring error -> вытащим короткое описание
       msg = `${data.error}${data.message ? ': ' + data.message : ''}`;
     }
   } catch (_) {
@@ -395,7 +386,6 @@ async function handleErrorResponse(res) {
   return msg;
 }
 
-// lifecycle
 watch(() => props.token, (newToken) => {
   if (newToken && props.isLoggedIn) { refreshMarines(); refreshChapters(); }
 });

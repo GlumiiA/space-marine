@@ -22,7 +22,7 @@ public interface SpaceMarineService {
 
     List<SpaceMarineResponseDTO> findByHealthGreaterThanEqual(Double health);
 
-    List<SpaceMarineResponseDTO> findByLoyal(Boolean loyal);
+    List<SpaceMarineResponseDTO> findByIsLoyal(Boolean isLoyal);
 
     List<SpaceMarineResponseDTO> findByChapterName(String chapterName);
 

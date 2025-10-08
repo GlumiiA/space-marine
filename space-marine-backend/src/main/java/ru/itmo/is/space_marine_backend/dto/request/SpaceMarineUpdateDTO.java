@@ -1,5 +1,6 @@
 package ru.itmo.is.space_marine_backend.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -22,8 +23,9 @@ public class SpaceMarineUpdateDTO {
     @NotNull(message = "Health is required")
     private Double health;
 
+    @JsonProperty("loyal")
     @NotNull(message = "Achievements is required")
-    private Boolean loyal;
+    private Boolean isLoyal;
 
     @NotNull(message = "Achievements is required")
     private String achievements;

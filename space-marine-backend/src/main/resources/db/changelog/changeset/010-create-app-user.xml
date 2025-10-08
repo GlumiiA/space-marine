@@ -1,0 +1,16 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="010" author="Aigul">
+        <sql>
+            CREATE TABLE app_user (
+                                      id BIGSERIAL PRIMARY KEY,
+                                      username VARCHAR(50) NOT NULL UNIQUE,
+                                      password_hash_bcrypt VARCHAR(60) NOT NULL,
+                                      role user_role NOT NULL DEFAULT 'USER'
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -1,5 +1,6 @@
 package ru.itmo.is.space_marine_backend.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import jakarta.validation.constraints.*;
 import ru.itmo.is.space_marine_backend.entity.AstartesCategory;
@@ -19,8 +20,9 @@ public class SpaceMarineCreateDTO {
     @Positive
     private double health;
 
+    @JsonProperty("loyal")
     @NotNull(message = "Loyalty is required")
-    private Boolean loyal;
+    private Boolean isLoyal;
 
     @NotNull(message = "Achievements is required")
     private String achievements;

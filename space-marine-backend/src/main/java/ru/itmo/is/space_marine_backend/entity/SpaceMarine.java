@@ -1,7 +1,9 @@
 package ru.itmo.is.space_marine_backend.entity;
 
+import com.vladmihalcea.hibernate.type.basic.PostgreSQLEnumType;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 
@@ -30,14 +32,14 @@ public class SpaceMarine {
     @Column(nullable = false)
     private double health;
 
-    @Column(nullable = false)
-    private Boolean loyal;
+    @Column(name = "is_loyal", nullable = false)
+    private Boolean isLoyal;
 
     @Column(nullable = false)
     private String achievements;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "category", nullable = false)
     private AstartesCategory category;
 
     @ManyToOne(fetch = FetchType.LAZY)

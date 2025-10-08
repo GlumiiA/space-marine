@@ -14,6 +14,6 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    @Column(name = "password_hash_bcrypt", nullable = false)
     private String passwordHash;
 }

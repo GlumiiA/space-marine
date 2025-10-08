@@ -54,7 +54,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         dto.setName(marine.getName());
         dto.setCreationDate(marine.getCreationDate());
         dto.setHealth(marine.getHealth());
-        dto.setLoyal(marine.getLoyal());
+        dto.setIsLoyal(marine.getIsLoyal());
         dto.setAchievements(marine.getAchievements());
         dto.setCategory(marine.getCategory());
 
@@ -107,7 +107,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         marine.setCoordinates(coordinates);
         marine.setChapter(chapter);
         marine.setHealth(dto.getHealth());
-        marine.setLoyal(dto.getLoyal());
+        marine.setIsLoyal(dto.getIsLoyal());
         marine.setAchievements(dto.getAchievements());
         marine.setCategory(dto.getCategory());
         marine.setOwner(currentUser);
@@ -138,7 +138,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         marine.setCoordinates(coordinates);
         marine.setChapter(chapter);
         marine.setHealth(dto.getHealth());
-        marine.setLoyal(dto.getLoyal());
+        marine.setIsLoyal(dto.getIsLoyal());
         marine.setAchievements(dto.getAchievements());
         marine.setCategory(dto.getCategory());
 
@@ -175,8 +175,8 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     }
 
     @Override
-    public List<SpaceMarineResponseDTO> findByLoyal(Boolean loyal) {
-        return spaceMarineRepository.findByLoyal(loyal).stream()
+    public List<SpaceMarineResponseDTO> findByIsLoyal(Boolean loyal) {
+        return spaceMarineRepository.findByIsLoyal(loyal).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
