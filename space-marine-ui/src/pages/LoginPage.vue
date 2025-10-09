@@ -40,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Блок регистрации -->
     <div class="box" v-else>
       <div class="title">REGISTER</div>
 
@@ -127,9 +126,9 @@ async function login() {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      credentials: "include", // Добавьте эту строку!
+      credentials: "include",
       body: JSON.stringify({
-        username: username.value, // Исправьте на 'login' если в бэкенде ожидается login
+        username: username.value,
         password: password.value
       }),
     });
@@ -160,7 +159,6 @@ async function login() {
   }
 }
 
-// Функция для регистрации
 async function register() {
   if (!regUsername.value || !regPassword.value || !regRepeat.value) {
     errorMessage.value = "Please fill in all fields";
@@ -182,9 +180,9 @@ async function register() {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      credentials: "include", // Добавьте эту строку!
+      credentials: "include",
       body: JSON.stringify({
-        username: regUsername.value, // Исправьте на 'login' если в бэкенде ожидается login
+        username: regUsername.value,
         password: regPassword.value,
       }),
     });

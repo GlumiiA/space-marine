@@ -6,6 +6,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Clock;
 import java.util.Date;
 import java.util.Base64;
 
@@ -14,17 +15,19 @@ public class JwtProvider {
 
     private final JwtProperties jwtProperties;
     private final SecretKey key;
+    private final Clock clock;
 
-    public JwtProvider(JwtProperties jwtProperties) {
+    public JwtProvider(JwtProperties jwtProperties, Clock clock) {
         this.jwtProperties = jwtProperties;
+        this.clock = clock;
 
         byte[] decodedKey = Base64.getDecoder().decode(jwtProperties.getSecret());
         this.key = Keys.hmacShaKeyFor(decodedKey);
     }
 
     public String generateToken(String username) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtProperties.getExpiration());
+        Date now = Date.from(clock.instant());
+        Date expiry = Date.from(clock.instant().plusMillis(jwtProperties.getExpiration()));
 
         return Jwts.builder()
                 .setSubject(username)
