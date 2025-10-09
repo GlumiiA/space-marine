@@ -13,6 +13,6 @@ public class NameFilterStrategy implements MarineFilterStrategy {
     @Override
     public Specification<SpaceMarine> buildSpecification(String value) {
         return (root, query, cb) ->
-                cb.like(cb.lower(root.get("name")), "%" + value.toLowerCase() + "%");
+                cb.like(cb.lower(root.get("name")), String.format("%%%s%%", value.toLowerCase()));
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.itmo.is.space_marine_backend.dto.response.MinCoordinatesDTO;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineOpsService;
 
 import java.util.Map;
@@ -27,7 +28,7 @@ public class SpaceMarineOpsController {
     }
 
     @GetMapping("/min-coordinates")
-    public ResponseEntity<Map<String, Object>> minCoordinates() {
+    public ResponseEntity<MinCoordinatesDTO> minCoordinates() {
         return ResponseEntity.ok(opsService.getMinCoordinates());
     }
 }

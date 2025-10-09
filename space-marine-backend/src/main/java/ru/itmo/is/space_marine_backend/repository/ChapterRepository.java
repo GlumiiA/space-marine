@@ -9,5 +9,4 @@ import java.util.Optional;
 @Repository
 public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     Optional<Chapter> findByName(String name);
-    Boolean existsByName(String name);
 }

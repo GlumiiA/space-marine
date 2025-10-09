@@ -3,6 +3,8 @@ package ru.itmo.is.space_marine_backend.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.itmo.is.space_marine_backend.dto.response.CoordinatesResponseDTO;
+import ru.itmo.is.space_marine_backend.dto.response.MinCoordinatesDTO;
 import ru.itmo.is.space_marine_backend.repository.SpaceMarineRepository;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineOpsService;
 
@@ -25,15 +27,15 @@ public class SpaceMarineOpsServiceImpl implements SpaceMarineOpsService {
     }
 
     @Override
-    public Map<String, Object> getMinCoordinates() {
+    public MinCoordinatesDTO getMinCoordinates() {
         Object[] row = (Object[]) repository.findMinCoordinates();
-        Map<String, Object> result = new HashMap<>();
-        result.put("id", row[0]);
-        result.put("name", row[1]);
-        Map<String, Object> coords = new HashMap<>();
-        coords.put("x", row[2]);
-        coords.put("y", row[3]);
-        result.put("coordinates", coords);
-        return result;
+        return new MinCoordinatesDTO(
+                (Long) row[0],
+                (String) row[1],
+                new CoordinatesResponseDTO(
+                        (Float) row[2],
+                        (Float) row[3]
+                )
+        );
     }
 }
