@@ -1,11 +1,8 @@
 package ru.itmo.is.space_marine_backend.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 
-@Data
-@AllArgsConstructor
-public class UserResponseDTO {
-    private Long id;
-    private String username;
-}
+public record UserResponseDTO(
+        Long id,
+        @NotBlank String username
+) {}

@@ -21,19 +21,20 @@ public class AuthService {
     }
 
     public void register(RegisterRequest registerRequest) {
-        if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
+        if (userRepository.findByUsername(registerRequest.username()).isPresent()) {
             throw new RuntimeException("Username is already in use");
         }
         User user = new User();
-        user.setUsername(registerRequest.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setUsername(registerRequest.username());
+        user.setPasswordHash(passwordEncoder.encode(registerRequest.password()));
         userRepository.save(user);
     }
 
     public AuthResponseDTO login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new RuntimeException("Incorrect password");
         }
         return new AuthResponseDTO(jwtProvider.generateToken(user.getUsername()));

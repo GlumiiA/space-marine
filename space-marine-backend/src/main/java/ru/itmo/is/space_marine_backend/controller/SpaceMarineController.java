@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
-import ru.itmo.is.space_marine_backend.dto.response.PageResponseDTO;
+import ru.itmo.is.space_marine_backend.dto.response.PageDTO;
 import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineResponseDTO;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineService;
 
@@ -74,7 +74,7 @@ public class SpaceMarineController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponseDTO<SpaceMarineResponseDTO>> getAll(
+    public ResponseEntity<PageDTO<SpaceMarineResponseDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -85,7 +85,7 @@ public class SpaceMarineController {
         Page<SpaceMarineResponseDTO> marinesPage =
                 spaceMarineService.getAllFilteredAndSorted(page, size, sortBy, sortDir, filterField, filterValue);
 
-        PageResponseDTO<SpaceMarineResponseDTO> dto = new PageResponseDTO<>(
+        PageDTO<SpaceMarineResponseDTO> dto = new PageDTO<>(
                 marinesPage.getContent(),
                 marinesPage.getNumber(),
                 marinesPage.getSize(),

@@ -49,39 +49,38 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     }
 
     private SpaceMarineResponseDTO mapToDto(SpaceMarine marine) {
-        SpaceMarineResponseDTO dto = new SpaceMarineResponseDTO();
-        dto.setId(marine.getId());
-        dto.setName(marine.getName());
-        dto.setCreationDate(marine.getCreationDate());
-        dto.setHealth(marine.getHealth());
-        dto.setIsLoyal(marine.getIsLoyal());
-        dto.setAchievements(marine.getAchievements());
-        dto.setCategory(marine.getCategory());
+        CoordinatesResponseDTO coords = marine.getCoordinates() != null
+                ? new CoordinatesResponseDTO(marine.getCoordinates().getX(), marine.getCoordinates().getY())
+                : null;
 
-        if (marine.getCoordinates() != null) {
-            dto.setCoordinates(new CoordinatesResponseDTO(
-                    marine.getCoordinates().getX(),
-                    marine.getCoordinates().getY()
-            ));
-        }
+        ChapterResponseDTO chapter = marine.getChapter() != null
+                ? new ChapterResponseDTO(
+                marine.getChapter().getName(),
+                marine.getChapter().getParentLegion(),
+                marine.getChapter().getWorld(),
+                marine.getChapter().getMarinesCount()
+        )
+                : null;
 
-        if (marine.getChapter() != null) {
-            dto.setChapter(new ChapterResponseDTO(
-                    marine.getChapter().getName(),
-                    marine.getChapter().getParentLegion(),
-                    marine.getChapter().getWorld(),
-                    marine.getChapter().getMarinesCount()
-            ));
-        }
+        UserResponseDTO owner = marine.getOwner() != null
+                ? new UserResponseDTO(
+                marine.getOwner().getId(),
+                marine.getOwner().getUsername()
+        )
+                : null;
 
-        if (marine.getOwner() != null) {
-            dto.setOwner(new UserResponseDTO(
-                    marine.getOwner().getId(),
-                    marine.getOwner().getUsername()
-            ));
-        }
-
-        return dto;
+        return new SpaceMarineResponseDTO(
+                marine.getId(),
+                marine.getName(),
+                coords,
+                marine.getCreationDate(),
+                marine.getHealth(),
+                marine.isLoyal(),
+                marine.getAchievements(),
+                marine.getCategory(),
+                chapter,
+                owner
+        );
     }
 
     @Override
@@ -93,23 +92,23 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
 
     @Override
     public SpaceMarineResponseDTO createSpaceMarine(SpaceMarineCreateDTO dto, String username) {
-        Coordinates coordinates = new Coordinates(dto.getCoordinates().getX(), dto.getCoordinates().getY());
+        Coordinates coordinates = new Coordinates(dto.coordinates().x(), dto.coordinates().y());
         coordinatesRepository.save(coordinates);
 
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        Chapter chapter = chapterRepository.findById(dto.getChapterId())
-                .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + dto.getChapterId()));
+        Chapter chapter = chapterRepository.findById(dto.chapterId())
+                .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + dto.chapterId()));
 
         SpaceMarine marine = new SpaceMarine();
-        marine.setName(dto.getName());
+        marine.setName(dto.name());
         marine.setCoordinates(coordinates);
         marine.setChapter(chapter);
-        marine.setHealth(dto.getHealth());
-        marine.setIsLoyal(dto.getIsLoyal());
-        marine.setAchievements(dto.getAchievements());
-        marine.setCategory(dto.getCategory());
+        marine.setHealth(dto.health());
+        marine.setLoyal(dto.isLoyal());
+        marine.setAchievements(dto.achievements());
+        marine.setCategory(dto.category());
         marine.setOwner(currentUser);
         spaceMarineRepository.save(marine);
         return mapToDto(marine);
@@ -127,20 +126,20 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         }
         // обновляем координаты
         Coordinates coordinates = marine.getCoordinates();
-        coordinates.setX(dto.getCoordinates().getX());
-        coordinates.setY(dto.getCoordinates().getY());
+        coordinates.setX(dto.coordinates().x());
+        coordinates.setY(dto.coordinates().y());
         coordinatesRepository.save(coordinates);
 
-        Chapter chapter = chapterRepository.findById(dto.getChapterId())
-                .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + dto.getChapterId()));
+        Chapter chapter = chapterRepository.findById(dto.chapterId())
+                .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + dto.chapterId()));
 
-        marine.setName(dto.getName());
+        marine.setName(dto.name());
         marine.setCoordinates(coordinates);
         marine.setChapter(chapter);
-        marine.setHealth(dto.getHealth());
-        marine.setIsLoyal(dto.getIsLoyal());
-        marine.setAchievements(dto.getAchievements());
-        marine.setCategory(dto.getCategory());
+        marine.setHealth(dto.health());
+        marine.setLoyal(dto.isLoyal());
+        marine.setAchievements(dto.achievements());
+        marine.setCategory(dto.category());
 
         spaceMarineRepository.save(marine);
         return mapToDto(marine);

@@ -1,12 +1,7 @@
 package ru.itmo.is.space_marine_backend.dto.response;
 
+import jakarta.validation.constraints.NotBlank;
 
-public class AuthResponseDTO {
-    private String token;
-    public AuthResponseDTO(String token) {
-        this.token = token;
-    }
-    public String getToken() {
-        return token;
-    }
-}
+public record AuthResponseDTO(
+        @NotBlank String token
+) {}

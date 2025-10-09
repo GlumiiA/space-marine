@@ -33,7 +33,7 @@ public class SpaceMarine {
     private double health;
 
     @Column(name = "is_loyal", nullable = false)
-    private Boolean isLoyal;
+    private boolean isLoyal;
 
     @Column(nullable = false)
     private String achievements;

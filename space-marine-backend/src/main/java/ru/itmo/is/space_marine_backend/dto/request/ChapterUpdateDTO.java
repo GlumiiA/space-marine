@@ -1,17 +1,10 @@
 package ru.itmo.is.space_marine_backend.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import java.util.Optional;
 
-@Data
-public class ChapterUpdateDTO {
-    @NotBlank
-    @NotNull(message = "Name is required")
-    private String name;
-
-    @NotNull(message = "ParentLegion is required")
-    private String parentLegion;
-
-    private String world;
-}
+public record ChapterUpdateDTO(
+        @NotBlank(message = "Name is required") String name,
+        String parentLegion,
+        Optional<String> world
+) {}
