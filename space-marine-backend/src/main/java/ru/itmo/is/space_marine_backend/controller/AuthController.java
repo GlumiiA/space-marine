@@ -19,11 +19,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public void register(@RequestBody RegisterRequest request) {
-        authService.register(request);
+        authService.register(request.username(), request.password());
     }
 
     @PostMapping("/login")
     public AuthResponseDTO login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+        return authService.login(request.username(), request.password());
     }
 }

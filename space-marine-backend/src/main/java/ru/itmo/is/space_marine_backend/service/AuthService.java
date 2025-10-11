@@ -3,7 +3,6 @@ package ru.itmo.is.space_marine_backend.service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.itmo.is.space_marine_backend.auth.JwtProvider;
-import ru.itmo.is.space_marine_backend.dto.request.LoginRequest;
 import ru.itmo.is.space_marine_backend.dto.request.RegisterRequest;
 import ru.itmo.is.space_marine_backend.dto.response.AuthResponseDTO;
 import ru.itmo.is.space_marine_backend.entity.User;
@@ -20,21 +19,21 @@ public class AuthService {
         this.jwtProvider = provider;
     }
 
-    public void register(RegisterRequest registerRequest) {
-        if (userRepository.findByUsername(registerRequest.username()).isPresent()) {
+    public void register(String username, String password) {
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username is already in use");
         }
         User user = new User();
-        user.setUsername(registerRequest.username());
-        user.setPasswordHash(passwordEncoder.encode(registerRequest.password()));
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(password));
         userRepository.save(user);
     }
 
-    public AuthResponseDTO login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.username())
+    public AuthResponseDTO login(String username, String password) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Incorrect password");
         }
         return new AuthResponseDTO(jwtProvider.generateToken(user.getId(), user.getUsername()));
