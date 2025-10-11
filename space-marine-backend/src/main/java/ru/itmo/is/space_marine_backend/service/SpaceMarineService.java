@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
+import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineQueryParams;
 import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineResponseDTO;
 import ru.itmo.is.space_marine_backend.entity.AstartesCategory;
 
@@ -30,5 +31,5 @@ public interface SpaceMarineService {
 
     SpaceMarineResponseDTO assignMarineToChapter(Long marineId, Long chapterId, String username);
 
-    Page<SpaceMarineResponseDTO> getAllFilteredAndSorted(int page, int size, String sortBy, String sortDir, String filterField, String filterValue);
+    Page<SpaceMarineResponseDTO> getAllFilteredAndSorted(SpaceMarineQueryParams params);
 }

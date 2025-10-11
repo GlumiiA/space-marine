@@ -2,10 +2,11 @@ package ru.itmo.is.space_marine_backend.service;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.is.space_marine_backend.auth.JwtProvider;
-import ru.itmo.is.space_marine_backend.dto.request.RegisterRequest;
 import ru.itmo.is.space_marine_backend.dto.response.AuthResponseDTO;
 import ru.itmo.is.space_marine_backend.entity.User;
+import ru.itmo.is.space_marine_backend.exception.PasswordMismatchException;
 import ru.itmo.is.space_marine_backend.repository.UserRepository;
 
 @Service
@@ -19,6 +20,7 @@ public class AuthService {
         this.jwtProvider = provider;
     }
 
+    @Transactional
     public void register(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("Username is already in use");
@@ -34,7 +36,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Incorrect password");
+            throw new PasswordMismatchException();
         }
         return new AuthResponseDTO(jwtProvider.generateToken(user.getId(), user.getUsername()));
     }

@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class SpaceMarineServiceImpl implements SpaceMarineService {
+    private static final int MAX_PAGE_SIZE = 20;
 
     private final SpaceMarineRepository spaceMarineRepository;
     private final CoordinatesRepository coordinatesRepository;
@@ -211,19 +212,18 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     }
 
     @Override
-    public Page<SpaceMarineResponseDTO> getAllFilteredAndSorted(
-            int page, int size, String sortBy, String sortDir,
-            String filterField, String filterValue
-    ) {
-        Sort sort = sortDir.equalsIgnoreCase("asc")
-                ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
+    public Page<SpaceMarineResponseDTO> getAllFilteredAndSorted(SpaceMarineQueryParams params) {
+        int size = Math.min(params.size(), MAX_PAGE_SIZE);
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Sort sort = params.sortDir().equalsIgnoreCase("asc")
+                ? Sort.by(params.sortBy()).ascending()
+                : Sort.by(params.sortBy()).descending();
+
+        Pageable pageable = PageRequest.of(params.page(), size, sort);
 
         Specification<SpaceMarine> spec = null;
-        if (filterField != null && filterValue != null) {
-            spec = strategyFactory.getSpecification(filterField, filterValue);
+        if (params.filterField() != null && params.filterValue() != null) {
+            spec = strategyFactory.getSpecification(params.filterField(), params.filterValue());
         }
 
         Page<SpaceMarine> marines = (spec != null)
