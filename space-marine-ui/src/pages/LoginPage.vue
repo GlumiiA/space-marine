@@ -106,8 +106,7 @@ const mode = ref("login");
 const loading = ref(false);
 const router = useRouter();
 const errorMessage = ref("");
-
-const API_URL = "http://localhost:8080/api/auth";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 // Функция для входа
 async function login() {
@@ -120,7 +119,7 @@ async function login() {
   errorMessage.value = "";
 
   try {
-    const res = await fetch(`${API_URL}/login`, {
+    const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -174,7 +173,7 @@ async function register() {
   errorMessage.value = "";
 
   try {
-    const res = await fetch(`${API_URL}/register`, {
+    const res = await fetch(`${apiBaseUrl}/api/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

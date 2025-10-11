@@ -12,6 +12,7 @@ import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
 import ru.itmo.is.space_marine_backend.dto.response.JwtUser;
 import ru.itmo.is.space_marine_backend.dto.response.PageDTO;
+import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineQueryParams;
 import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineResponseDTO;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineService;
 
@@ -83,8 +84,11 @@ public class SpaceMarineController {
             @RequestParam(required = false) String filterField,
             @RequestParam(required = false) String filterValue
     ) {
+        SpaceMarineQueryParams pageRequest = new SpaceMarineQueryParams(
+                page, size, sortBy, sortDir, filterField, filterValue
+        );
         Page<SpaceMarineResponseDTO> marinesPage =
-                spaceMarineService.getAllFilteredAndSorted(page, size, sortBy, sortDir, filterField, filterValue);
+                spaceMarineService.getAllFilteredAndSorted(pageRequest);
 
         PageDTO<SpaceMarineResponseDTO> dto = new PageDTO<>(
                 marinesPage.getContent(),

@@ -150,6 +150,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['logout']);
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const marines = ref([]);
 const chapters = ref([]);
@@ -194,7 +195,7 @@ function viewDetails(marine) {
 async function refreshMarines() {
   if (!props.token) return;
   try {
-    const url = `http://localhost:8080/api/space-marines?page=${currentPage.value}&size=${pageSize.value}&sortBy=${sortKey.value}&sortDir=${sortDir.value}`;
+    const url = `${apiBaseUrl}/api/space-marines?page=${currentPage.value}&size=${pageSize.value}&sortBy=${sortKey.value}&sortDir=${sortDir.value}`;
     const res = await fetch(url, {
       headers: { "Authorization": `Bearer ${props.token}` }
     });
@@ -245,8 +246,8 @@ function openAddToChapter() {
 async function saveMarine(payload) {
   try {
     const url = payload.id
-        ? `http://localhost:8080/api/space-marines/${payload.id}`
-        : 'http://localhost:8080/api/space-marines';
+        ? `${apiBaseUrl}/api/space-marines/${payload.id}`
+        : `${apiBaseUrl}/api/space-marines`;
     const method = payload.id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -286,7 +287,7 @@ async function assignMarine() {
 
   try {
     const res = await fetch(
-        `http://localhost:8080/api/space-marines/${selectedMarineId.value}/assign-chapter?chapterId=${selectedChapterId.value}`,
+        `${apiBaseUrl}/api/space-marines/${selectedMarineId.value}/assign-chapter?chapterId=${selectedChapterId.value}`,
         {
           method: "POST",
           headers: {
@@ -328,7 +329,7 @@ async function confirmDissolve() {
   const ok = confirm("Вы действительно хотите распустить эту главу? Это действие необратимо.");
   if (!ok) return;
   try {
-    const res = await fetch(`http://localhost:8080/api/chapters/${selectedChapterForDissolve.value}/dissolve`, {
+    const res = await fetch(`${apiBaseUrl}/api/chapters/${selectedChapterForDissolve.value}/dissolve`, {
       method: 'POST',
       headers: { "Authorization": `Bearer ${props.token}` }
     });
@@ -351,7 +352,7 @@ async function confirmDissolve() {
 async function confirmDelete(marine) {
   if (confirm(`Удалить ${marine.name}?`)) {
     try {
-      const res = await fetch(`http://localhost:8080/api/space-marines/${marine.id}`, {
+      const res = await fetch(`${apiBaseUrl}/api/space-marines/${marine.id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${props.token}` }
       });
@@ -361,12 +362,8 @@ async function confirmDelete(marine) {
         closeDissolveChapter();
         return;
       }
-      let data = {};
-      const text = await res.text();
-      if (text) {
-        data = JSON.parse(text);
-      }
 
+      const data = await res.json();
       operationResult.value = data.message || "Chapter dissolved successfully";
 
       showDissolveChapter.value = false;

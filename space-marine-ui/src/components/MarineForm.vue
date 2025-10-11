@@ -110,14 +110,36 @@ function toggleCreateChapter() {
 
 function validate() {
   errors.value = {};
-  if (!form.value.name.trim()) errors.value.name = "Name required";
-  if (form.value.coordinates.x === "" || isNaN(form.value.coordinates.x)) errors.value['coordinates.x'] = "X required";
-  if (form.value.coordinates.y === "" || isNaN(form.value.coordinates.y)) errors.value['coordinates.y'] = "Y required";
-  if (!form.value.health || form.value.health <= 0) errors.value.health = "Health must be > 0";
-  if (!form.value.achievements.trim()) errors.value.achievements = "Achievements required";
-  if (!form.value.category) errors.value.category = "Category required";
-  if (createChapter.value && !newChapter.value.name.trim()) errors.value['chapter.name'] = "Chapter name required";
-  if (!createChapter.value && !selectedChapterId.value) errors.value.chapterId = "Chapter required";
+
+  if (!form.value.name.trim()) {
+    errors.value.name = "Name required";
+  }
+
+  if (form.value.coordinates.x === "" || isNaN(form.value.coordinates.x)) {
+    errors.value['coordinates.x'] = "X required";
+  }
+  if (form.value.coordinates.y === "" || isNaN(form.value.coordinates.y)) {
+    errors.value['coordinates.y'] = "Y required";
+  }
+
+  if (!form.value.health || form.value.health <= 0) {
+    errors.value.health = "Health must be > 0";
+  }
+
+  if (!form.value.achievements.trim()) {
+    errors.value.achievements = "Achievements required";
+  }
+
+  if (!form.value.category) {
+    errors.value.category = "Category required";
+  }
+
+  if (createChapter.value && !newChapter.value.name.trim()) {
+    errors.value['chapter.name'] = "Chapter name required";
+  }
+  if (!createChapter.value && !selectedChapterId.value) {
+    errors.value.chapterId = "Chapter required";
+  }
 
   return Object.keys(errors.value).length === 0;
 }
@@ -128,9 +150,8 @@ async function submitForm() {
 
   let chapterId = selectedChapterId.value;
 
-// Если создаём новую главу
   if (createChapter.value) {
-    const res = await fetch('http://localhost:8080/api/chapters', {
+    const res = await fetch(`${apiBaseUrl}/api/chapters`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${props.token}` },
       body: JSON.stringify(newChapter.value)

@@ -41,6 +41,7 @@
 
 <script setup>
 import { ref } from "vue";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 const props = defineProps({ token: String });
 
@@ -49,21 +50,21 @@ const avgHealthResult = ref(null);
 const minCoordinatesResult = ref(null);
 
 async function sumHealth() {
-  const res = await fetch("http://localhost:8080/api/space-marines/ops/sum-health", {
+  const res = await fetch(`${apiBaseUrl}/api/space-marines/ops/sum-health`, {
     headers: { "Authorization": `Bearer ${props.token}` }
   });
   sumHealthResult.value = await res.text();
 }
 
 async function avgHealth() {
-  const res = await fetch("http://localhost:8080/api/space-marines/ops/avg-health", {
+  const res = await fetch(`${apiBaseUrl}/api/space-marines/ops/avg-health`, {
     headers: { "Authorization": `Bearer ${props.token}` }
   });
   avgHealthResult.value = await res.text();
 }
 
 async function minCoordinates() {
-  const res = await fetch("http://localhost:8080/api/space-marines/ops/min-coordinates", {
+  const res = await fetch(`${apiBaseUrl}/api/space-marines/ops/min-coordinates`, {
     headers: { "Authorization": `Bearer ${props.token}` }
   });
   minCoordinatesResult.value = await res.json();

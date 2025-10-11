@@ -28,11 +28,11 @@ public class SpaceMarineOpsServiceImpl implements SpaceMarineOpsService {
     public MinCoordinatesDTO getMinCoordinates() {
         Object[] row = (Object[]) repository.findMinCoordinates();
         return new MinCoordinatesDTO(
-                (Long) row[0],
+                ((Number) row[0]).longValue(),
                 (String) row[1],
                 new CoordinatesResponseDTO(
-                        (Float) row[2],
-                        (Float) row[3]
+                        ((Number) row[2]).floatValue(),
+                        ((Number) row[3]).floatValue()
                 )
         );
     }
