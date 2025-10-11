@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'space-marine-backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'space-marine-backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: space-marine-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+
+      - name: Run CheckStyle
+        run: ./gradlew checkstyleMain checkstyleTest --no-daemon

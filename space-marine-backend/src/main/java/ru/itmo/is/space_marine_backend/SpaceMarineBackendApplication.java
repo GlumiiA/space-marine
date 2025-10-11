@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class SpaceMarineBackendApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SpaceMarineBackendApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(SpaceMarineBackendApplication.class, args);
+    }
 }

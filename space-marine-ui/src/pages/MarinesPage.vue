@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, toRaw } from 'vue';
+import { ref, watch, onMounted, toRaw } from 'vue';
 import { useRouter } from 'vue-router';
 import MarineTable from '../components/MarineTable.vue';
 import MarineForm from '../components/MarineForm.vue';
@@ -380,17 +380,23 @@ async function handleErrorResponse(res) {
   let msg = `Ошибка: ${res.status}`;
   try {
     const data = await res.json();
-    if (data.message) msg = data.message;
-    else if (data.error) msg = data.error;
-    else if (data.timestamp && data.status && data.error) {
-      msg = `${data.error}${data.message ? ': ' + data.message : ''}`;
+
+    if (data.message) {
+      msg = data.message;
+    } else if (data.error) {
+      msg = data.error;
+      if (data.timestamp && data.status) {
+        msg += data.message ? `: ${data.message}` : '';
+      }
     }
-  } catch (_) {
+  } catch {
     const text = await res.text();
     msg = text || msg;
   }
+
   return msg;
 }
+
 
 watch(() => props.token, (newToken) => {
   if (newToken && props.isLoggedIn) { refreshMarines(); refreshChapters(); }

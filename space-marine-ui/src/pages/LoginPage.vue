@@ -139,7 +139,7 @@ async function login() {
       let errData;
       try {
         errData = await res.json();
-      } catch (e) {
+      } catch {
         errData = { message: `HTTP error! status: ${res.status}` };
       }
       throw new Error(errData.message || "Login failed");
@@ -192,7 +192,7 @@ async function register() {
       let errData;
       try {
         errData = await res.json();
-      } catch (e) {
+      } catch {
         errData = { message: `HTTP error! status: ${res.status}` };
       }
       throw new Error(errData.message || "Registration failed");
@@ -208,7 +208,6 @@ async function register() {
   }
 }
 
-// Анимация label
 function onFocus(e) {
   const label = e.target.previousElementSibling;
   label.style.lineHeight = "18px";
