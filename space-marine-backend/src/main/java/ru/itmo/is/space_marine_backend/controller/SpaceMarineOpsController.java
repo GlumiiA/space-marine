@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.itmo.is.space_marine_backend.dto.response.MinCoordinatesDTO;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineOpsService;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/space-marines/ops")

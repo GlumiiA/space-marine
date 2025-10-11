@@ -37,6 +37,6 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new RuntimeException("Incorrect password");
         }
-        return new AuthResponseDTO(jwtProvider.generateToken(user.getUsername()));
+        return new AuthResponseDTO(jwtProvider.generateToken(user.getId(), user.getUsername()));
     }
 }

@@ -355,14 +355,23 @@ async function confirmDelete(marine) {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${props.token}` }
       });
-      if (res.ok) {
-        operationResult.value = `${marine.name} удалён`;
-        await refreshMarines();
-      } else {
+      if (!res.ok) {
         const msg = await handleErrorResponse(res);
         operationResult.value = msg;
-        alert(msg);
+        closeDissolveChapter();
+        return;
       }
+      let data = {};
+      const text = await res.text();
+      if (text) {
+        data = JSON.parse(text);
+      }
+
+      operationResult.value = data.message || "Chapter dissolved successfully";
+
+      showDissolveChapter.value = false;
+      await refreshChapters();
+      await refreshMarines();
     } catch (err) {
       console.error(err);
       operationResult.value = "Ошибка сети при удалении";

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
+import ru.itmo.is.space_marine_backend.dto.response.JwtUser;
 import ru.itmo.is.space_marine_backend.dto.response.PageDTO;
 import ru.itmo.is.space_marine_backend.dto.response.SpaceMarineResponseDTO;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineService;
@@ -34,21 +35,21 @@ public class SpaceMarineController {
     @PostMapping
     public ResponseEntity<SpaceMarineResponseDTO> createMarine(
             @Valid @RequestBody SpaceMarineCreateDTO dto,
-            @AuthenticationPrincipal String username) {
-        return ResponseEntity.ok(spaceMarineService.createSpaceMarine(dto, username));
+            @AuthenticationPrincipal JwtUser user) {
+        return ResponseEntity.ok(spaceMarineService.createSpaceMarine(dto, user.username()));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<SpaceMarineResponseDTO> update(@PathVariable Long id,
                                                          @Valid @RequestBody SpaceMarineUpdateDTO dto,
-                                                         @AuthenticationPrincipal String username) {
-        return ResponseEntity.ok(spaceMarineService.updateSpaceMarine(id, dto, username));
+                                                         @AuthenticationPrincipal JwtUser user) {
+        return ResponseEntity.ok(spaceMarineService.updateSpaceMarine(id, dto, user.id()));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id,
-                                       @AuthenticationPrincipal String username) {
-        spaceMarineService.deleteSpaceMarine(id, username);
+                                       @AuthenticationPrincipal JwtUser user) {
+        spaceMarineService.deleteSpaceMarine(id, user.id());
         return ResponseEntity.noContent().build();
     }
 

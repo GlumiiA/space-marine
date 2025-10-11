@@ -14,9 +14,9 @@ public interface SpaceMarineService {
 
     SpaceMarineResponseDTO createSpaceMarine(SpaceMarineCreateDTO dto, String username);
 
-    SpaceMarineResponseDTO updateSpaceMarine(Long id, SpaceMarineUpdateDTO dto, String username);
+    SpaceMarineResponseDTO updateSpaceMarine(Long id, SpaceMarineUpdateDTO dto, Long userId);
 
-    void deleteSpaceMarine(Long id, String username);
+    void deleteSpaceMarine(Long id, Long userId);
 
     List<SpaceMarineResponseDTO> findByCategory(AstartesCategory category);
 

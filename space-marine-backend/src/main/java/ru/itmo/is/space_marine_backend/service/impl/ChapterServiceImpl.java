@@ -25,6 +25,15 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    public Chapter createChapter(Chapter chapter) {
+        return chapterRepository.save(chapter);
+    }
+
+    @Override
+    public List<Chapter> getAllChapters() {
+        return chapterRepository.findAll();
+    }
+    @Override
     @Transactional
     public void dissolveChapter(Long chapterId) {
         Chapter chapter = chapterRepository.findById(chapterId)

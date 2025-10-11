@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.itmo.is.space_marine_backend.dto.response.JwtUser;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -40,9 +41,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String token = header.substring(BEARER_PREFIX.length());
             try {
                 String username = jwtProvider.getUsername(token);
+                Long userId = jwtProvider.getUserId(token);
+
+                JwtUser jwtUser = new JwtUser(userId, username);
 
                 final UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        username,
+                        jwtUser,
                         /* credentials = */ null,
                         /* authorities = */ List.of()
                 );

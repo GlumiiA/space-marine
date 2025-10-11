@@ -8,8 +8,6 @@ import ru.itmo.is.space_marine_backend.dto.response.MinCoordinatesDTO;
 import ru.itmo.is.space_marine_backend.repository.SpaceMarineRepository;
 import ru.itmo.is.space_marine_backend.service.SpaceMarineOpsService;
 
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor

@@ -6,10 +6,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
 import ru.itmo.is.space_marine_backend.dto.response.*;
@@ -34,21 +32,24 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
     private final MarineFilterStrategyFactory strategyFactory;
+    public final JwtService jwtService;
 
 
     public SpaceMarineServiceImpl(SpaceMarineRepository spaceMarineRepository,
                                   CoordinatesRepository coordinatesRepository,
                                   ChapterRepository chapterRepository,
                                   UserRepository userRepository,
-                                  MarineFilterStrategyFactory strategyFactory) {
+                                  MarineFilterStrategyFactory strategyFactory,
+                                  JwtService jwtService) {
         this.spaceMarineRepository = spaceMarineRepository;
         this.coordinatesRepository = coordinatesRepository;
         this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
         this.strategyFactory = strategyFactory;
+        this.jwtService = jwtService;
     }
 
-    private SpaceMarineResponseDTO mapToDto(SpaceMarine marine) {
+    private SpaceMarineResponseDTO toDto(SpaceMarine marine) {
         CoordinatesResponseDTO coords = marine.getCoordinates() != null
                 ? new CoordinatesResponseDTO(marine.getCoordinates().getX(), marine.getCoordinates().getY())
                 : null;
@@ -87,10 +88,11 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     public SpaceMarineResponseDTO getSpaceMarineById(Long id) {
         SpaceMarine marine = spaceMarineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("SpaceMarine not found with id " + id));
-        return mapToDto(marine);
+        return toDto(marine);
     }
 
     @Override
+    @Transactional
     public SpaceMarineResponseDTO createSpaceMarine(SpaceMarineCreateDTO dto, String username) {
         Coordinates coordinates = new Coordinates(dto.coordinates().x(), dto.coordinates().y());
         coordinatesRepository.save(coordinates);
@@ -111,20 +113,18 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         marine.setCategory(dto.category());
         marine.setOwner(currentUser);
         spaceMarineRepository.save(marine);
-        return mapToDto(marine);
+        return toDto(marine);
     }
 
     @Override
-    public SpaceMarineResponseDTO updateSpaceMarine(Long id, SpaceMarineUpdateDTO dto, String username) {
+    public SpaceMarineResponseDTO updateSpaceMarine(Long id, SpaceMarineUpdateDTO dto, Long userId) {
         SpaceMarine marine = spaceMarineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("SpaceMarine not found with id " + id));
 
-        User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        if (!marine.getOwner().getUsername().equals(username)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not the owner of this SpaceMarine!");
+        if (!marine.getOwner().getId().equals(userId)) {
+            throw new SecurityException("You are not the owner of this SpaceMarine!");
         }
-        // обновляем координаты
+
         Coordinates coordinates = marine.getCoordinates();
         coordinates.setX(dto.coordinates().x());
         coordinates.setY(dto.coordinates().y());
@@ -142,17 +142,15 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         marine.setCategory(dto.category());
 
         spaceMarineRepository.save(marine);
-        return mapToDto(marine);
+        return toDto(marine);
     }
 
     @Override
-    public void deleteSpaceMarine(Long id, String username) {
-        User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    public void deleteSpaceMarine(Long id, Long userId) {
         SpaceMarine marine = spaceMarineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("SpaceMarine not found with id " + id));
 
-        if (!marine.getOwner().getId().equals(currentUser.getId())) {
+        if (!marine.getOwner().getId().equals(userId)) {
             throw new SecurityException("You are not the owner of this SpaceMarine!");
         }
 
@@ -162,35 +160,35 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     @Override
     public List<SpaceMarineResponseDTO> findByCategory(AstartesCategory category) {
         return spaceMarineRepository.findByCategory(category).stream()
-                .map(this::mapToDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<SpaceMarineResponseDTO> findByHealthGreaterThanEqual(Double health) {
         return spaceMarineRepository.findByHealthGreaterThanEqual(health).stream()
-                .map(this::mapToDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<SpaceMarineResponseDTO> findByIsLoyal(Boolean loyal) {
         return spaceMarineRepository.findByIsLoyal(loyal).stream()
-                .map(this::mapToDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<SpaceMarineResponseDTO> findByChapterName(String chapterName) {
         return spaceMarineRepository.findByChapterNameContainingIgnoreCase(chapterName).stream()
-                .map(this::mapToDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public Page<SpaceMarineResponseDTO> getAllSpaceMarines(Pageable pageable) {
         return spaceMarineRepository.findAll(pageable)
-                .map(this::mapToDto);
+                .map(this::toDto);
     }
 
     @Override
@@ -208,7 +206,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         marine.setChapter(chapter);
         spaceMarineRepository.save(marine);
 
-        return mapToDto(marine);
+        return toDto(marine);
 
     }
 
@@ -232,6 +230,6 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
                 ? spaceMarineRepository.findAll(spec, pageable)
                 : spaceMarineRepository.findAll(pageable);
 
-        return marines.map(this::mapToDto);
+        return marines.map(this::toDto);
     }
 }
