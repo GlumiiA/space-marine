@@ -1,0 +1,16 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+
+    <changeSet id="021" author="Aigul">
+        <sql splitStatements="false" endDelimiter=";;">
+            CREATE OR REPLACE FUNCTION fn_avg_health()
+                RETURNS DOUBLE PRECISION AS $$
+            SELECT COALESCE(AVG(health), 0) FROM space_marine;
+            $$ LANGUAGE sql;;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
