@@ -4,7 +4,6 @@
         "https://checkstyle.org/dtds/configuration_1_3.dtd">
 <module name="Checker">
 
-    <!-- Проверка табов в файле -->
     <module name="FileTabCharacter"/>
 
     <module name="LineLength">

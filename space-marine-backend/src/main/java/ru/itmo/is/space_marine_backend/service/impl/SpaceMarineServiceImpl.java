@@ -95,14 +95,51 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     @Override
     @Transactional
     public SpaceMarineResponseDTO createSpaceMarine(SpaceMarineCreateDTO dto, String username) {
-        Coordinates coordinates = new Coordinates(dto.coordinates().x(), dto.coordinates().y());
-        coordinatesRepository.save(coordinates);
-
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Chapter chapter = chapterRepository.findById(dto.chapterId())
                 .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + dto.chapterId()));
+
+        float x = dto.coordinates().x();
+        float y = dto.coordinates().y();
+
+        //TODO: согласовать ограничения уникальности.
+        for (SpaceMarine existing : spaceMarineRepository.findAllWithCoordinates()) {
+            Coordinates exCoords = existing.getCoordinates();
+            if (exCoords == null) continue;
+
+            double dx = exCoords.getX() - dto.coordinates().x();
+            double dy = exCoords.getY() - dto.coordinates().y();
+            double distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) {
+                throw new IllegalArgumentException("Координаты уже заняты другим бойцом");
+            }
+
+            double minDistance = existing.getCategory().getRadius() + dto.category().getRadius();
+            if (distance < minDistance) {
+                throw new IllegalArgumentException(
+                        String.format("Нарушение пространственного ограничения: %s слишком близко к %s (%.2f < %.2f)",
+                                dto.name(), existing.getName(), distance, minDistance)
+                );
+            }
+        }
+
+
+        if (spaceMarineRepository.existsByNameAndChapterId(dto.name(), chapter.getId())) {
+            throw new IllegalArgumentException("В главе '" + chapter.getName() +
+                    "' уже существует боец с именем '" + dto.name() + "'");
+        }
+
+        long marineCount = spaceMarineRepository.countByChapterId(chapter.getId());
+        if (marineCount >= 100) {
+            throw new IllegalArgumentException("Глава '" + chapter.getName() +
+                    "' достигла максимального лимита бойцов (100)");
+        }
+
+        Coordinates coordinates = new Coordinates(x, y);
+        coordinatesRepository.save(coordinates);
 
         SpaceMarine marine = new SpaceMarine();
         marine.setName(dto.name());
@@ -113,6 +150,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         marine.setAchievements(dto.achievements());
         marine.setCategory(dto.category());
         marine.setOwner(currentUser);
+
         spaceMarineRepository.save(marine);
         return toDto(marine);
     }

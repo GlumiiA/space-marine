@@ -1,0 +1,55 @@
+[
+    {
+        "name": "Ultramarine Captain",
+        "coordinates": {
+            "x": 10.0,
+            "y": 20.0
+        },
+        "chapter": {
+            "name": "Ultramarines",
+            "parentLegion": "XIII Legion",
+            "world": "Macragge",
+            "marinesCount": 1
+        },
+        "health": 95.0,
+        "loyal": true,
+        "achievements": "Led successful mission",
+        "category": "ASSAULT"
+    },
+    {
+        "name": "Space Marine Sergeant",
+        "coordinates": {
+            "x": 12.0,
+            "y": 22.0
+        },
+        "chapterId": 1,
+        "health": 88.5,
+        "loyal": false,
+        "achievements": "Survived engagements",
+        "category": "SUPPRESSOR"
+    },
+    {
+        "name": "Ultramarine Captain",
+        "coordinates": {
+            "x": 15.0,
+            "y": 25.0
+        },
+        "chapterId": 1,
+        "health": 100.0,
+        "loyal": true,
+        "achievements": "Duplicate name test",
+        "category": "DREADNOUGHT"
+    },
+    {
+        "name": "Test Marine",
+        "coordinates": {
+            "x": 10.5,
+            "y": 20.5
+        },
+        "chapterId": 1,
+        "health": 100.0,
+        "loyal": true,
+        "achievements": "Close coordinates test",
+        "category": "SCOUT"
+    }
+]

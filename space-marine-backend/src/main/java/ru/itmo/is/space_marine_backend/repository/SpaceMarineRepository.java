@@ -21,7 +21,9 @@ public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long> 
     List<SpaceMarine> findByIsLoyal(Boolean isLoyal);
     List<SpaceMarine> findByChapterNameContainingIgnoreCase(String chapterName);
     List<SpaceMarine> findByChapter(Chapter chapter);
-
+    boolean existsByNameAndChapterId(String name, Long chapterId);
+    boolean existsByCoordinates_XAndCoordinates_Y(float x, float y);
+    long countByChapterId(Long chapterId);
 
     @Query(value = "SELECT fn_sum_health()", nativeQuery = true)
     Long sumHealth();
@@ -33,4 +35,7 @@ public interface SpaceMarineRepository extends JpaRepository<SpaceMarine, Long> 
     Object findMinCoordinates();
 
     Page<SpaceMarine> findAll(Specification<SpaceMarine> spec, Pageable pageable);
+
+    @Query("SELECT m FROM SpaceMarine m JOIN FETCH m.coordinates")
+    List<SpaceMarine> findAllWithCoordinates();
 }
