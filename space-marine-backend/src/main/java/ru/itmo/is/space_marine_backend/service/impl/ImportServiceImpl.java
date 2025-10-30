@@ -7,13 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.itmo.is.space_marine_backend.entity.*;
-import ru.itmo.is.space_marine_backend.repository.ChapterRepository;
-import ru.itmo.is.space_marine_backend.repository.CoordinatesRepository;
-import ru.itmo.is.space_marine_backend.repository.SpaceMarineRepository;
-import ru.itmo.is.space_marine_backend.repository.UserRepository;
+import ru.itmo.is.space_marine_backend.repository.*;
 import ru.itmo.is.space_marine_backend.service.ImportService;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,15 +23,18 @@ public class ImportServiceImpl implements ImportService {
     private final CoordinatesRepository coordinatesRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
+    private final ImportOperationRepository importOperationRepository;
 
     public ImportServiceImpl(SpaceMarineRepository spaceMarineRepository,
                                     CoordinatesRepository coordinatesRepository,
                                     ChapterRepository chapterRepository,
-                                    UserRepository userRepository) {
+                                    UserRepository userRepository,
+                             ImportOperationRepository importOperationRepository) {
         this.spaceMarineRepository = spaceMarineRepository;
         this.coordinatesRepository = coordinatesRepository;
         this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
+        this.importOperationRepository = importOperationRepository;
     }
 
     @Override
@@ -41,21 +42,37 @@ public class ImportServiceImpl implements ImportService {
         User currentUser = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(file.getInputStream());
+        ImportOperation operation = new ImportOperation();
+        operation.setUsername(currentUser.getUsername());
+        operation.setTimestamp(LocalDateTime.now());
 
-        if (!root.isArray()) {
-            throw new IllegalArgumentException("JSON должен быть массивом объектов");
-        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(file.getInputStream());
 
-        List<SpaceMarine> marines = parseAndValidate(root, currentUser);
-
-        for (SpaceMarine marine : marines) {
-            if (marine.getChapter().getId() == null) {
-                chapterRepository.save(marine.getChapter());
+            if (!root.isArray()) {
+                throw new IllegalArgumentException("JSON должен быть массивом объектов");
             }
-            coordinatesRepository.save(marine.getCoordinates());
-            spaceMarineRepository.save(marine);
+
+            List<SpaceMarine> marines = parseAndValidate(root, currentUser);
+
+            for (SpaceMarine marine : marines) {
+                if (marine.getChapter().getId() == null) {
+                    chapterRepository.save(marine.getChapter());
+                }
+                coordinatesRepository.save(marine.getCoordinates());
+                spaceMarineRepository.save(marine);
+            }
+
+            operation.setStatus("SUCCESS");
+            operation.setAddedCount(marines.size());
+
+        } catch (Exception e) {
+            operation.setStatus("FAILED");
+            operation.setAddedCount(0);
+            throw e;
+        } finally {
+            importOperationRepository.save(operation);
         }
     }
 

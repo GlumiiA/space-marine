@@ -18,5 +18,6 @@
     <include file="db/changelog/changeset/021-fn-avg-health.xml"/>
     <include file="db/changelog/changeset/022-fn-min-coordinates.xml"/>
     <include file="db/changelog/changeset/023-convert-category-to-varchar.xml"/>
+    <include file="db/changelog/changeset/024-create-imports-table.xml"/>
 
 </databaseChangeLog>

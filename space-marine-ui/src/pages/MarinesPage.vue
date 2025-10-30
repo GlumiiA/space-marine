@@ -13,6 +13,10 @@
         {{ showImportForm ? "Back to Table" : "Import Marines" }}
       </button>
 
+      <button class="btn btn-secondary" @click="toggleImportHistory">
+        {{ showImportHistory ? "Back to Table" : "Import History" }}
+      </button>
+
       <button class="btn btn-warning" @click="openAddToChapter">Add marine to chapter</button>
       <button class="btn btn-danger" @click="openDissolveChapter">Dissolve chapter</button>
 
@@ -31,8 +35,13 @@
         @import-complete="onImportComplete"
     />
 
+    <ImportHistory
+        v-if="showImportHistory"
+        :token="token"
+    />
+
     <MarineTable
-        v-if="!showOpsPanel && !showImportForm"
+        v-if="!showOpsPanel && !showImportForm && !showImportHistory"
         :marines="marines"
         :sortKey="sortKey"
         :sortDir="sortDir"
@@ -152,6 +161,7 @@ import MarineTable from '../components/MarineTable.vue';
 import MarineForm from '../components/MarineForm.vue';
 import SpecialOperations from '../components/SpecialOperations.vue';
 import ImportForm from '../components/ImportForm.vue';
+import ImportHistory from '../components/ImportHistory.vue'
 
 const showImportForm = ref(false);
 
@@ -185,6 +195,8 @@ const showOpsPanel = ref(false);
 
 const sortKey = ref("id");
 const sortDir = ref("asc");
+const showImportHistory = ref(false)
+
 
 function toggleImportForm() {
   showImportForm.value = !showImportForm.value;
@@ -204,6 +216,14 @@ function handleChangeSort(key) {
     sortDir.value = 'asc';
   }
   refreshMarines();
+}
+
+function toggleImportHistory() {
+  showImportHistory.value = !showImportHistory.value
+  if (showImportHistory.value) {
+    showImportForm.value = false
+    showOpsPanel.value = false
+  }
 }
 
 
@@ -380,15 +400,18 @@ async function confirmDelete(marine) {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${props.token}` }
       });
+
       if (!res.ok) {
-        const msg = await handleErrorResponse(res);
-        operationResult.value = msg;
-        closeDissolveChapter();
+        operationResult.value = `Ошибка при удалении: ${res.status}`;
         return;
       }
 
-      const data = await res.json();
-      operationResult.value = data.message || "Chapter dissolved successfully";
+      if (res.status === 204) {
+        operationResult.value = "Объект успешно удалён";
+      } else {
+        const data = await res.json().catch(() => ({}));
+        operationResult.value = data.message || "Удалено";
+      }
 
       showDissolveChapter.value = false;
       await refreshChapters();
