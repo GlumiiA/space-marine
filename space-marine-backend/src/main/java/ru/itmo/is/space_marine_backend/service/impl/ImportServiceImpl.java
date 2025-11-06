@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.itmo.is.space_marine_backend.entity.*;
 import ru.itmo.is.space_marine_backend.repository.*;
 import ru.itmo.is.space_marine_backend.service.ImportService;
+import org.springframework.transaction.annotation.Isolation;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class ImportServiceImpl implements ImportService {
     }
 
     @Override
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void importFromJson(MultipartFile file, Long userId) throws IOException {
         User currentUser = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineCreateDTO;
 import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineUpdateDTO;
@@ -156,6 +157,7 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
     }
 
     @Override
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public SpaceMarineResponseDTO updateSpaceMarine(Long id, SpaceMarineUpdateDTO dto, Long userId) {
         SpaceMarine marine = spaceMarineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("SpaceMarine not found with id " + id));
