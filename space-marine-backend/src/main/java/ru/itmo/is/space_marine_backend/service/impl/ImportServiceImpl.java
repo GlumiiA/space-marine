@@ -86,7 +86,8 @@ public class ImportServiceImpl implements ImportService {
             if (!node.hasNonNull("name") || node.get("name").asText().isBlank()) {
                 throw new IllegalArgumentException("Поле 'name' обязательно и не должно быть пустым");
             }
-            if (!node.hasNonNull("coordinates") || !node.get("coordinates").hasNonNull("x") || !node.get("coordinates").hasNonNull("y")) {
+            if (!node.hasNonNull("coordinates") || !node.get("coordinates").hasNonNull("x")
+                    || !node.get("coordinates").hasNonNull("y")) {
                 throw new IllegalArgumentException("Поле 'coordinates' обязательно и должно содержать 'x' и 'y'");
             }
             if (!node.has("chapterId") && !node.has("chapter")) {
@@ -116,15 +117,18 @@ public class ImportServiceImpl implements ImportService {
             Chapter chapter;
             if (node.has("chapterId")) {
                 Long chapterId = node.get("chapterId").asLong();
-                chapter = chapterRepository.findById(chapterId)
-                        .orElseThrow(() -> new EntityNotFoundException("Chapter not found with id " + chapterId));
+                chapter = chapterRepository.findById(chapterId).orElseThrow(()
+                        -> new EntityNotFoundException("Chapter not found with id " + chapterId));
             } else {
                 JsonNode chapterNode = node.get("chapter");
                 chapter = new Chapter();
                 chapter.setName(chapterNode.get("name").asText());
-                chapter.setParentLegion(chapterNode.hasNonNull("parentLegion") ? chapterNode.get("parentLegion").asText() : null);
-                chapter.setWorld(chapterNode.hasNonNull("world") ? chapterNode.get("world").asText() : null);
-                chapter.setMarinesCount(chapterNode.hasNonNull("marinesCount") ? chapterNode.get("marinesCount").asInt() : 0);
+                chapter.setParentLegion(chapterNode.hasNonNull("parentLegion")
+                        ? chapterNode.get("parentLegion").asText() : null);
+                chapter.setWorld(chapterNode.hasNonNull("world")
+                        ? chapterNode.get("world").asText() : null);
+                chapter.setMarinesCount(chapterNode.hasNonNull("marinesCount")
+                        ? chapterNode.get("marinesCount").asInt() : 0);
             }
             marine.setChapter(chapter);
 
@@ -160,7 +164,8 @@ public class ImportServiceImpl implements ImportService {
                 }
             }
 
-            if (chapter.getId() != null && spaceMarineRepository.existsByNameAndChapterId(marine.getName(), chapter.getId())) {
+            if (chapter.getId() != null && spaceMarineRepository
+                    .existsByNameAndChapterId(marine.getName(), chapter.getId())) {
                 throw new IllegalArgumentException(
                         "В главе '" + chapter.getName() + "' уже существует боец с именем '" + marine.getName() + "'"
                 );

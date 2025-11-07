@@ -22,7 +22,8 @@ public class SpaceMarineImportController {
     }
 
     @PostMapping
-    public ResponseEntity<?> importMarines(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal JwtUser user) {
+    public ResponseEntity<?> importMarines(@RequestParam("file") MultipartFile file,
+                                           @AuthenticationPrincipal JwtUser user) {
         try {
             importService.importFromJson(file, user.id());
             return ResponseEntity.ok(ApiMessage.success("Импорт успешно завершён"));
