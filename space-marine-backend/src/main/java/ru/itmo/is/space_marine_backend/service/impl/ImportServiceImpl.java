@@ -1,17 +1,16 @@
 package ru.itmo.is.space_marine_backend.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
+import ru.itmo.is.space_marine_backend.dto.request.ChapterCreateDTO;
+import ru.itmo.is.space_marine_backend.dto.request.SpaceMarineImportDTO;
 import ru.itmo.is.space_marine_backend.entity.*;
 import ru.itmo.is.space_marine_backend.repository.*;
 import ru.itmo.is.space_marine_backend.service.ImportService;
 import org.springframework.transaction.annotation.Isolation;
 
-import java.io.IOException;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,11 +24,12 @@ public class ImportServiceImpl implements ImportService {
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
     private final ImportOperationRepository importOperationRepository;
+    private static final double COORDINATE_EPSILON = 1e-6;
 
     public ImportServiceImpl(SpaceMarineRepository spaceMarineRepository,
-                                    CoordinatesRepository coordinatesRepository,
-                                    ChapterRepository chapterRepository,
-                                    UserRepository userRepository,
+                             CoordinatesRepository coordinatesRepository,
+                             ChapterRepository chapterRepository,
+                             UserRepository userRepository,
                              ImportOperationRepository importOperationRepository) {
         this.spaceMarineRepository = spaceMarineRepository;
         this.coordinatesRepository = coordinatesRepository;
@@ -38,25 +38,23 @@ public class ImportServiceImpl implements ImportService {
         this.importOperationRepository = importOperationRepository;
     }
 
-    @Override
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public void importFromJson(MultipartFile file, Long userId) throws IOException {
-        User currentUser = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+    public void importFromDTOs(List<SpaceMarineImportDTO> dtos, Long userId) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         ImportOperation operation = new ImportOperation();
-        operation.setUsername(currentUser.getUsername());
+        operation.setUsername(owner.getUsername());
         operation.setTimestamp(LocalDateTime.now());
 
+        List<SpaceMarine> marines = new ArrayList<>();
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(file.getInputStream());
-
-            if (!root.isArray()) {
-                throw new IllegalArgumentException("JSON должен быть массивом объектов");
+            for (SpaceMarineImportDTO dto : dtos) {
+                SpaceMarine marine = convertDTOtoEntity(dto, owner);
+                marines.add(marine);
             }
 
-            List<SpaceMarine> marines = parseAndValidate(root, currentUser);
+            validateMarines(marines);
 
             for (SpaceMarine marine : marines) {
                 if (marine.getChapter().getId() == null) {
@@ -66,11 +64,10 @@ public class ImportServiceImpl implements ImportService {
                 spaceMarineRepository.save(marine);
             }
 
-            operation.setStatus("SUCCESS");
+            operation.setStatus(ImportStatus.SUCCESS);
             operation.setAddedCount(marines.size());
-
         } catch (Exception e) {
-            operation.setStatus("FAILED");
+            operation.setStatus(ImportStatus.FAILED);
             operation.setAddedCount(0);
             throw e;
         } finally {
@@ -78,67 +75,43 @@ public class ImportServiceImpl implements ImportService {
         }
     }
 
-    @Override
-    public List<SpaceMarine> parseAndValidate(JsonNode root, User owner) {
-        List<SpaceMarine> marines = new ArrayList<>();
+    private SpaceMarine convertDTOtoEntity(SpaceMarineImportDTO dto, User owner) {
+        SpaceMarine marine = new SpaceMarine();
+        marine.setOwner(owner);
+        marine.setName(dto.name());
+        marine.setHealth(dto.health());
+        marine.setLoyal(dto.isLoyal());
+        marine.setAchievements(dto.achievements());
+        marine.setCategory(dto.category());
 
-        for (JsonNode node : root) {
-            if (!node.hasNonNull("name") || node.get("name").asText().isBlank()) {
-                throw new IllegalArgumentException("Поле 'name' обязательно и не должно быть пустым");
-            }
-            if (!node.hasNonNull("coordinates") || !node.get("coordinates").hasNonNull("x")
-                    || !node.get("coordinates").hasNonNull("y")) {
-                throw new IllegalArgumentException("Поле 'coordinates' обязательно и должно содержать 'x' и 'y'");
-            }
-            if (!node.has("chapterId") && !node.has("chapter")) {
-                throw new IllegalArgumentException("Необходимо указать либо 'chapterId', либо объект 'chapter'");
-            }
-            if (!node.hasNonNull("achievements") || node.get("achievements").asText().isBlank()) {
-                throw new IllegalArgumentException("Поле 'achievements' обязательно");
-            }
-            if (!node.hasNonNull("category")) {
-                throw new IllegalArgumentException("Поле 'category' обязательно");
-            }
+        Coordinates coords = new Coordinates(dto.coordinates().x(), dto.coordinates().y());
+        marine.setCoordinates(coords);
 
-            SpaceMarine marine = new SpaceMarine();
-            marine.setName(node.get("name").asText());
-            marine.setHealth(node.hasNonNull("health") ? node.get("health").asDouble() : 100.0);
-            marine.setLoyal(node.hasNonNull("loyal") && node.get("loyal").asBoolean());
-            marine.setAchievements(node.get("achievements").asText());
-            marine.setOwner(owner);
+        Chapter chapter;
+        if (dto.chapterId() != 0) {
+            chapter = chapterRepository.findById(dto.chapterId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Chapter not found with id " + dto.chapterId()));
+        } else if (dto.chapter() != null) {
+            ChapterCreateDTO c = dto.chapter();
+            chapter = new Chapter();
+            chapter.setName(c.name());
+            chapter.setParentLegion(c.parentLegion());
+            chapter.setWorld(String.valueOf(c.world()));
+        } else {
+            throw new IllegalArgumentException("Необходимо указать либо chapterId, либо chapter объект");
+        }
+        marine.setChapter(chapter);
 
-            JsonNode coordsNode = node.get("coordinates");
-            Coordinates coords = new Coordinates(
-                    (float) coordsNode.get("x").asDouble(),
-                    (float) coordsNode.get("y").asDouble()
-            );
-            marine.setCoordinates(coords);
+        return marine;
+    }
 
-            Chapter chapter;
-            if (node.has("chapterId")) {
-                Long chapterId = node.get("chapterId").asLong();
-                chapter = chapterRepository.findById(chapterId).orElseThrow(()
-                        -> new EntityNotFoundException("Chapter not found with id " + chapterId));
-            } else {
-                JsonNode chapterNode = node.get("chapter");
-                chapter = new Chapter();
-                chapter.setName(chapterNode.get("name").asText());
-                chapter.setParentLegion(chapterNode.hasNonNull("parentLegion")
-                        ? chapterNode.get("parentLegion").asText() : null);
-                chapter.setWorld(chapterNode.hasNonNull("world")
-                        ? chapterNode.get("world").asText() : null);
-                chapter.setMarinesCount(chapterNode.hasNonNull("marinesCount")
-                        ? chapterNode.get("marinesCount").asInt() : 0);
-            }
-            marine.setChapter(chapter);
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void validateMarines(List<SpaceMarine> marines) {
+        for (SpaceMarine marine : marines) {
+            Coordinates coords = marine.getCoordinates();
+            Chapter chapter = marine.getChapter();
 
-            try {
-                marine.setCategory(AstartesCategory.valueOf(node.get("category").asText()));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Неверное значение для 'category'");
-            }
-
-            // проверки уникальности
             for (SpaceMarine existing : spaceMarineRepository.findAllWithCoordinates()) {
                 Coordinates exCoords = existing.getCoordinates();
                 if (exCoords == null) continue;
@@ -147,7 +120,7 @@ public class ImportServiceImpl implements ImportService {
                 double dy = exCoords.getY() - coords.getY();
                 double distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (Math.abs(dx) < 1e-6 && Math.abs(dy) < 1e-6) {
+                if (Math.abs(dx) < COORDINATE_EPSILON && Math.abs(dy) < COORDINATE_EPSILON) {
                     throw new IllegalArgumentException(
                             "Координаты уже заняты другим бойцом: " + existing.getName()
                     );
@@ -177,11 +150,6 @@ public class ImportServiceImpl implements ImportService {
                         "Глава '" + chapter.getName() + "' достигла максимального лимита бойцов (100)"
                 );
             }
-
-            marines.add(marine);
         }
-
-        return marines;
     }
-
 }

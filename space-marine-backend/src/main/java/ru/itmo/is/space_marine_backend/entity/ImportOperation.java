@@ -15,6 +15,7 @@ public class ImportOperation {
 
     private String username;
     private LocalDateTime timestamp;
-    private String status; // SUCCESS / FAILED
+    @Enumerated(EnumType.STRING)
+    private ImportStatus status;
     private Integer addedCount;
 }
