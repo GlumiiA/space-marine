@@ -9,6 +9,14 @@
         {{ showOpsPanel ? "Back to Table" : "Special Operations" }}
       </button>
 
+      <button class="btn btn-success" @click="toggleImportForm">
+        {{ showImportForm ? "Back to Table" : "Import Marines" }}
+      </button>
+
+      <button class="btn btn-secondary" @click="toggleImportHistory">
+        {{ showImportHistory ? "Back to Table" : "Import History" }}
+      </button>
+
       <button class="btn btn-warning" @click="openAddToChapter">Add marine to chapter</button>
       <button class="btn btn-danger" @click="openDissolveChapter">Dissolve chapter</button>
 
@@ -21,8 +29,19 @@
     <SpecialOperations v-if="showOpsPanel" :token="token" />
 
     <!-- таблица -->
+    <ImportForm
+        v-if="showImportForm"
+        :token="token"
+        @import-complete="onImportComplete"
+    />
+
+    <ImportHistory
+        v-if="showImportHistory"
+        :token="token"
+    />
+
     <MarineTable
-        v-if="!showOpsPanel"
+        v-if="!showOpsPanel && !showImportForm && !showImportHistory"
         :marines="marines"
         :sortKey="sortKey"
         :sortDir="sortDir"
@@ -32,8 +51,17 @@
         @delete="confirmDelete"
     />
 
+    <MarineForm
+        v-if="showForm && !showOpsPanel && !showImportForm"
+        :marine="selectedMarine"
+        :chapters="chapters"
+        :token="token"
+        @close="closeForm"
+        @save="saveMarine"
+    />
+
     <!-- пагинация -->
-    <nav v-if="!showOpsPanel && totalPages > 1" class="mt-3">
+    <nav v-if="!showOpsPanel && !showImportForm && totalPages > 1" class="mt-3">
       <ul class="pagination">
         <li class="page-item" :class="{ disabled: currentPage === 0 }">
           <button class="page-link" @click="changePage(currentPage - 1)">Prev</button>
@@ -47,14 +75,6 @@
       </ul>
     </nav>
 
-    <MarineForm
-        v-else-if="showForm"
-        :marine="selectedMarine"
-        :chapters="chapters"
-        :token="token"
-        @save="saveMarine"
-        @close="closeForm"
-    />
     <!-- Add to Chapter modal -->
     <div v-if="showAddToChapter" class="modal-overlay">
       <div class="modal-window">
@@ -140,6 +160,10 @@ import { useRouter } from 'vue-router';
 import MarineTable from '../components/MarineTable.vue';
 import MarineForm from '../components/MarineForm.vue';
 import SpecialOperations from '../components/SpecialOperations.vue';
+import ImportForm from '../components/ImportForm.vue';
+import ImportHistory from '../components/ImportHistory.vue'
+
+const showImportForm = ref(false);
 
 const router = useRouter();
 
@@ -171,6 +195,18 @@ const showOpsPanel = ref(false);
 
 const sortKey = ref("id");
 const sortDir = ref("asc");
+const showImportHistory = ref(false)
+
+
+function toggleImportForm() {
+  showImportForm.value = !showImportForm.value;
+}
+
+function onImportComplete(message) {
+  operationResult.value = message;
+  showImportForm.value = false;
+  refreshMarines();
+}
 
 function handleChangeSort(key) {
   if (sortKey.value === key) {
@@ -180,6 +216,14 @@ function handleChangeSort(key) {
     sortDir.value = 'asc';
   }
   refreshMarines();
+}
+
+function toggleImportHistory() {
+  showImportHistory.value = !showImportHistory.value
+  if (showImportHistory.value) {
+    showImportForm.value = false
+    showOpsPanel.value = false
+  }
 }
 
 
@@ -342,7 +386,7 @@ async function confirmDissolve() {
     operationResult.value = "Chapter dissolved successfully";
     showDissolveChapter.value = false;
     await refreshChapters();
-    await refreshMarines(); // на случай, если список изменилась
+    await refreshMarines();
   } catch (e) {
     console.error(e);
     operationResult.value = "Network error while dissolving chapter";
@@ -356,15 +400,18 @@ async function confirmDelete(marine) {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${props.token}` }
       });
+
       if (!res.ok) {
-        const msg = await handleErrorResponse(res);
-        operationResult.value = msg;
-        closeDissolveChapter();
+        operationResult.value = `Ошибка при удалении: ${res.status}`;
         return;
       }
 
-      const data = await res.json();
-      operationResult.value = data.message || "Chapter dissolved successfully";
+      if (res.status === 204) {
+        operationResult.value = "Объект успешно удалён";
+      } else {
+        const data = await res.json().catch(() => ({}));
+        operationResult.value = data.message || "Удалено";
+      }
 
       showDissolveChapter.value = false;
       await refreshChapters();
