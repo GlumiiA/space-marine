@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Data
 @Table(name = "space_marine")
+@Cacheable
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class SpaceMarine {
     @Id

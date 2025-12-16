@@ -17,28 +17,36 @@
         <expiry>
             <ttl unit="minutes">15</ttl>
         </expiry>
-        <heap unit="entries">5000</heap>
+        <resources>
+            <heap unit="entries">5000</heap>
+        </resources>
     </cache-template>
 
     <cache-template name="referenceTemplate">
         <expiry>
             <ttl unit="minutes">30</ttl>
         </expiry>
-        <heap unit="entries">2000</heap>
+        <resources>
+            <heap unit="entries">2000</heap>
+        </resources>
     </cache-template>
 
     <cache-template name="queryTemplate">
         <expiry>
             <ttl unit="minutes">5</ttl>
         </expiry>
-        <heap unit="entries">5000</heap>
+        <resources>
+            <heap unit="entries">5000</heap>
+        </resources>
     </cache-template>
 
     <cache-template name="timestampTemplate">
         <expiry>
             <none/>
         </expiry>
-        <heap unit="entries">5000</heap>
+        <resources>
+            <heap unit="entries">5000</heap>
+        </resources>
     </cache-template>
 
     <cache alias="ru.itmo.is.space_marine_backend.entity.SpaceMarine" uses-template="entityTemplate"/>
@@ -46,14 +54,18 @@
     <cache alias="ru.itmo.is.space_marine_backend.entity.Chapter" uses-template="referenceTemplate"/>
 
     <cache alias="ru.itmo.is.space_marine_backend.entity.Coordinates" uses-template="entityTemplate">
-        <heap unit="entries">3000</heap>
+        <resources>
+            <heap unit="entries">3000</heap>
+        </resources>
     </cache>
 
     <cache alias="ru.itmo.is.space_marine_backend.entity.User" uses-template="entityTemplate">
         <expiry>
             <ttl unit="minutes">20</ttl>
         </expiry>
-        <heap unit="entries">1000</heap>
+        <resources>
+            <heap unit="entries">1000</heap>
+        </resources>
     </cache>
 
     <cache alias="default-query-results-region" uses-template="queryTemplate"/>
