@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.ehcache.org/v3"
+        xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+        xsi:schemaLocation="http://www.ehcache.org/v3
+                            http://www.ehcache.org/schema/ehcache-core-3.0.xsd
+                            http://www.ehcache.org/v3/jsr107
+                            http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
+
+
+    <service>
+        <jsr107:defaults enable-management="true"
+                         enable-statistics="true"/>
+    </service>
+
+    <cache-template name="entityTemplate">
+        <expiry>
+            <ttl unit="minutes">15</ttl>
+        </expiry>
+        <heap unit="entries">5000</heap>
+    </cache-template>
+
+    <cache-template name="referenceTemplate">
+        <expiry>
+            <ttl unit="minutes">30</ttl>
+        </expiry>
+        <heap unit="entries">2000</heap>
+    </cache-template>
+
+    <cache-template name="queryTemplate">
+        <expiry>
+            <ttl unit="minutes">5</ttl>
+        </expiry>
+        <heap unit="entries">5000</heap>
+    </cache-template>
+
+    <cache-template name="timestampTemplate">
+        <expiry>
+            <none/>
+        </expiry>
+        <heap unit="entries">5000</heap>
+    </cache-template>
+
+    <cache alias="ru.itmo.is.space_marine_backend.entity.SpaceMarine" uses-template="entityTemplate"/>
+
+    <cache alias="ru.itmo.is.space_marine_backend.entity.Chapter" uses-template="referenceTemplate"/>
+
+    <cache alias="ru.itmo.is.space_marine_backend.entity.Coordinates" uses-template="entityTemplate">
+        <heap unit="entries">3000</heap>
+    </cache>
+
+    <cache alias="ru.itmo.is.space_marine_backend.entity.User" uses-template="entityTemplate">
+        <expiry>
+            <ttl unit="minutes">20</ttl>
+        </expiry>
+        <heap unit="entries">1000</heap>
+    </cache>
+
+    <cache alias="default-query-results-region" uses-template="queryTemplate"/>
+
+    <cache alias="org.hibernate.cache.spi.QueryResultsCache" uses-template="queryTemplate"/>
+    <cache alias="org.hibernate.cache.internal.StandardQueryCache" uses-template="queryTemplate"/>
+
+    <cache alias="default-update-timestamps-region" uses-template="timestampTemplate"/>
+
+</config>

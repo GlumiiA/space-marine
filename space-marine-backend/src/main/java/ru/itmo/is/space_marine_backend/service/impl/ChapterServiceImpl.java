@@ -2,6 +2,7 @@ package ru.itmo.is.space_marine_backend.service.impl;
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import ru.itmo.is.space_marine_backend.cache.L2CacheTracked;
 import ru.itmo.is.space_marine_backend.entity.Chapter;
 import ru.itmo.is.space_marine_backend.entity.SpaceMarine;
 import ru.itmo.is.space_marine_backend.exception.ChapterNotEmptyException;
@@ -19,7 +20,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final SpaceMarineRepository marineRepository;
 
     public ChapterServiceImpl(ChapterRepository chapterRepository,
-                              SpaceMarineRepository marineRepository) {
+            SpaceMarineRepository marineRepository) {
         this.chapterRepository = chapterRepository;
         this.marineRepository = marineRepository;
     }
@@ -30,9 +31,11 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    @L2CacheTracked
     public List<Chapter> getAllChapters() {
         return chapterRepository.findAll();
     }
+
     @Override
     @Transactional
     public void dissolveChapter(Long chapterId) {
