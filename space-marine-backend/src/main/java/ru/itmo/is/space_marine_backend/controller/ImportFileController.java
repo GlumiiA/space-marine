@@ -25,13 +25,23 @@ import ru.itmo.is.space_marine_backend.service.impl.ImportTransactionCoordinator
 public class ImportFileController {
 
     private final ImportTransactionCoordinator coordinator;
-    private final ImportFileRepository importFileRepository;
 
     @PostMapping("/prepare")
-    public ResponseEntity<?> prepare(@RequestParam("file") MultipartFile file,
-            @RequestParam("username") String username) throws Exception {
-        ImportOperation op = coordinator.prepare(username, file.getInputStream(), file.getOriginalFilename(),
-                file.getContentType(), file.getSize());
+    public ResponseEntity<?> prepare(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("username") String username,
+            @RequestParam(value = "failAfterFile", defaultValue = "false") boolean failAfterFile
+    ) throws Exception {
+        ImportOperation op;
+        try (var is = file.getInputStream()) {
+            op = coordinator.prepare(username, is, file.getOriginalFilename(),
+                    file.getContentType(), file.getSize());
+        }
+        // Для тестирования сценария: RuntimeException между загрузкой файла и записью в
+        // БД
+        if (failAfterFile) {
+            throw new RuntimeException("[TEST] Ошибка после загрузки файла, до записи в БД");
+        }
         return ResponseEntity.ok(ApiMessage.success("Prepared import operation id=" + op.getId()));
     }
 
@@ -67,20 +77,4 @@ public class ImportFileController {
         }
     }
 
-    @GetMapping("/{id}/files")
-    public ResponseEntity<?> getFiles(@PathVariable Long id) {
-        List<ImportFile> files = importFileRepository.findByImportOperationId(id);
-        List<Map<String, Object>> out = files.stream().map(f -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("id", f.getId());
-            m.put("fileName", f.getFileName());
-            m.put("objectKey", f.getObjectKey());
-            m.put("storageStatus", f.getStorageStatus());
-            m.put("createdAt", f.getCreatedAt());
-            m.put("txId", f.getTxId());
-            m.put("ownerUsername", f.getOwnerUsername());
-            return m;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(out);
-    }
 }

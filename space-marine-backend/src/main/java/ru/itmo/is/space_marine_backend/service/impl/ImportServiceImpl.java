@@ -75,19 +75,16 @@ public class ImportServiceImpl implements ImportService {
             }
             operation.setStatus(ImportStatus.SUCCESS);
             operation.setAddedCount(marines.size());
-            // commit storage side after successful DB inserts
             if (importOperationId != null) {
                 coordinator.commit(importOperationId);
             }
         } catch (Exception e) {
             operation.setStatus(ImportStatus.FAILED);
             operation.setAddedCount(0);
-            // rollback storage side on error
             if (importOperationId != null) {
                 try {
                     coordinator.rollback(importOperationId);
                 } catch (Exception ex) {
-                    // log and continue; original exception is rethrown
                 }
             }
             throw e;

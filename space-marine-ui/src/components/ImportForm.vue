@@ -46,7 +46,6 @@ function onFileChange(e) {
 async function uploadFile() {
   if (!selectedFile.value) return
 
-  // 1. prepare: upload file to Minio temp storage
   const username = decodeJwt(props.token)?.sub || decodeJwt(props.token)?.username || 'unknown'
   const prepareForm = new FormData()
   prepareForm.append('file', selectedFile.value)
@@ -62,7 +61,7 @@ async function uploadFile() {
     const opId = m ? m[1] : null
     if (!opId) throw new Error('Не удалось получить id операции подготовки')
 
-    // 2. import: parse and save to DB, link with importOperationId
+
     statusMessage.value = 'Импорт данных...'
     const importForm = new FormData()
     importForm.append('file', selectedFile.value)
@@ -70,7 +69,6 @@ async function uploadFile() {
       headers: { Authorization: `Bearer ${props.token}` }
     })
 
-    // 3. get download link (backend already commits when importOperationId provided)
     statusMessage.value = 'Получаю ссылку на файл...'
     try {
       const dl = await axios.get(`${apiBaseUrl}/api/imports/${opId}/download`, {
@@ -80,7 +78,7 @@ async function uploadFile() {
       if (url) {
         statusMessage.value = 'Импорт завершён.'
       } else {
-        statusMessage.value = 'Импорт завершён, ссылка на файл недоступна'
+        statusMessage.value = 'Импорт завершён, но ссылка на файл недоступна'
       }
       emit('import-complete', statusMessage.value)
     } catch (e) {

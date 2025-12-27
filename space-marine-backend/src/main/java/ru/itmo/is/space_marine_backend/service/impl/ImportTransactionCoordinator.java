@@ -35,21 +35,24 @@ public class ImportTransactionCoordinator {
         this.importFileRepo = importFileRepo;
     }
 
-    /**
-     * Prepare phase: upload file to temp location and persist ImportOperation and
-     * ImportFile with PREPARED state.
-     */
     public ImportOperation prepare(String username, InputStream fileStream, String filename, String contentType,
             long size) {
-        String txId = UUID.randomUUID().toString();
-        String tempKey = minioService.uploadTemp(txId, filename, fileStream, contentType, size);
-
         ImportOperation op = new ImportOperation();
         op.setUsername(username);
         op.setTimestamp(LocalDateTime.now());
         op.setStatus(ImportStatus.IN_PROGRESS);
         op.setAddedCount(0);
         op = importRepo.save(op);
+
+        String txId = UUID.randomUUID().toString();
+        String tempKey = null;
+        try {
+            tempKey = minioService.uploadTemp(txId, filename, fileStream, contentType, size);
+        } catch (Exception e) {
+            op.setStatus(ImportStatus.FAILED);
+            importRepo.save(op);
+            throw e;
+        }
 
         ImportFile file = new ImportFile();
         file.setImportOperation(op);
@@ -65,14 +68,10 @@ public class ImportTransactionCoordinator {
         return op;
     }
 
-    /**
-     * Commit phase: copy temp object(s) to final location and update DB state.
-     */
     @Transactional
     public ImportOperation commit(Long importOperationId) {
         ImportOperation op = importRepo.findById(importOperationId)
                 .orElseThrow(() -> new IllegalArgumentException("ImportOperation not found"));
-        // single-file per import: find the prepared file
         List<ImportFile> files = importFileRepo.findByImportOperationIdAndStorageStatus(op.getId(),
                 StorageStatus.PREPARED);
         if (files.isEmpty())
@@ -89,9 +88,6 @@ public class ImportTransactionCoordinator {
         return importRepo.save(op);
     }
 
-    /**
-     * Rollback phase: remove temp object(s) and mark DB state accordingly.
-     */
     @Transactional
     public ImportOperation rollback(Long importOperationId) {
         ImportOperation op = importRepo.findById(importOperationId)

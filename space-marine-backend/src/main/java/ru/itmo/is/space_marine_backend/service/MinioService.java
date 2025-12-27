@@ -10,7 +10,5 @@ public interface MinioService {
 
     void delete(String key);
 
-    String presignGetUrl(String key, Duration expiry);
-
     String presignGetUrl(String key, Duration expiry, String filename);
 }

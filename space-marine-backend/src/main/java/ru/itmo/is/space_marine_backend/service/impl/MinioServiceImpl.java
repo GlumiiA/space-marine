@@ -43,7 +43,6 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void copyToFinal(String sourceKey, String destKey) {
         try {
-            // Use server-side copy
             CopySource source = CopySource.builder().bucket(bucket).object(sourceKey).build();
             CopyObjectArgs args = CopyObjectArgs.builder()
                     .bucket(bucket)
@@ -67,25 +66,9 @@ public class MinioServiceImpl implements MinioService {
     }
 
     @Override
-    public String presignGetUrl(String key, Duration expiry) {
-        try {
-            GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(bucket)
-                    .object(key)
-                    .expiry((int) expiry.getSeconds())
-                    .build();
-            return client.getPresignedObjectUrl(args);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create presigned url", e);
-        }
-    }
-
-    @Override
     public String presignGetUrl(String key, Duration expiry, String filename) {
         try {
             java.util.Map<String, String> extra = new java.util.HashMap<>();
-            // force download with attachment disposition
             extra.put("response-content-disposition", "attachment; filename=\"" + filename + "\"");
 
             GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
