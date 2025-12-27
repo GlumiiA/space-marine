@@ -61,7 +61,7 @@
     />
 
     <!-- пагинация -->
-    <nav v-if="!showOpsPanel && !showImportForm && totalPages > 1" class="mt-3">
+    <nav v-if="!showOpsPanel && !showImportForm && !showImportHistory && totalPages > 1" class="mt-3">
       <ul class="pagination">
         <li class="page-item" :class="{ disabled: currentPage === 0 }">
           <button class="page-link" @click="changePage(currentPage - 1)">Prev</button>
