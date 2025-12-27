@@ -119,7 +119,7 @@ async function download(id) {
     })
     if (!res.ok) {
       let msg = `Ошибка: ${res.status}`
-      try { const j = await res.json(); msg = j.message || j.code || msg } catch (e) {}
+      try { const j = await res.json(); msg = j.message || j.code || msg } catch (err) { error.value = 'Ошибка при обработке ответа: ' + err.message }
       error.value = msg
       return
     }

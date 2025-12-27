@@ -81,7 +81,7 @@ async function uploadFile() {
         statusMessage.value = 'Импорт завершён, но ссылка на файл недоступна'
       }
       emit('import-complete', statusMessage.value)
-    } catch (e) {
+    } catch {
       statusMessage.value = 'Импорт завершён, но ссылка на файл недоступна'
       emit('import-complete', statusMessage.value)
     }
