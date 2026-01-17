@@ -27,6 +27,7 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
+import { decodeJwt } from '../utils/decodeJwt'
 
 const props = defineProps({
   token: String
@@ -45,24 +46,48 @@ function onFileChange(e) {
 async function uploadFile() {
   if (!selectedFile.value) return
 
-  const formData = new FormData()
-  formData.append('file', selectedFile.value)
+  const username = decodeJwt(props.token)?.sub || decodeJwt(props.token)?.username || 'unknown'
+  const prepareForm = new FormData()
+  prepareForm.append('file', selectedFile.value)
+  prepareForm.append('username', username)
 
   try {
-    statusMessage.value = 'Загрузка файла...'
-    const response = await axios.post(`${apiBaseUrl}/api/space-marines/import`, formData, {
-      headers: {
-        'Authorization': `Bearer ${props.token}`,
-        'Content-Type': 'multipart/form-data'
-      }
+    statusMessage.value = 'Подготовка файла...'
+    const prepRes = await axios.post(`${apiBaseUrl}/api/imports/prepare`, prepareForm, {
+      headers: { Authorization: `Bearer ${props.token}` }
     })
-    statusMessage.value = response.data || 'Импорт успешно завершён!'
-    emit('import-complete', statusMessage.value)
+    const prepMsg = prepRes.data?.message || ''
+    const m = prepMsg.match(/id=(\d+)/)
+    const opId = m ? m[1] : null
+    if (!opId) throw new Error('Не удалось получить id операции подготовки')
+
+
+    statusMessage.value = 'Импорт данных...'
+    const importForm = new FormData()
+    importForm.append('file', selectedFile.value)
+    await axios.post(`${apiBaseUrl}/api/space-marines/import?importOperationId=${opId}`, importForm, {
+      headers: { Authorization: `Bearer ${props.token}` }
+    })
+
+    statusMessage.value = 'Получаю ссылку на файл...'
+    try {
+      const dl = await axios.get(`${apiBaseUrl}/api/imports/${opId}/download`, {
+        headers: { Authorization: `Bearer ${props.token}` }
+      })
+      const url = dl.data?.message
+      if (url) {
+        statusMessage.value = 'Импорт завершён.'
+      } else {
+        statusMessage.value = 'Импорт завершён, но ссылка на файл недоступна'
+      }
+      emit('import-complete', statusMessage.value)
+    } catch {
+      statusMessage.value = 'Импорт завершён, но ссылка на файл недоступна'
+      emit('import-complete', statusMessage.value)
+    }
   } catch (err) {
     console.error(err)
-    statusMessage.value =
-        'Ошибка при импорте: ' +
-        (err.response?.data?.message || err.response?.data || err.message)
+    statusMessage.value = 'Ошибка при импорте: ' + (err.response?.data?.message || err.message)
   }
 }
 </script>

@@ -30,17 +30,19 @@ import java.util.List;
 @RequestMapping("/api/space-marines/import")
 public class SpaceMarineImportController {
     private final ImportService importService;
+
     public SpaceMarineImportController(ImportService importService) {
         this.importService = importService;
     }
 
     @PostMapping
     public ResponseEntity<?> importMarines(@RequestParam("file") MultipartFile file,
-                                           @AuthenticationPrincipal JwtUser user) {
+            @AuthenticationPrincipal JwtUser user,
+            @RequestParam(value = "importOperationId", required = false) Long importOperationId) {
         List<SpaceMarineImportDTO> marines;
         try {
             marines = parseFileToDTO(file);
-            importService.importFromDTOs(marines, user.id());
+            importService.importFromDTOs(marines, user.id(), importOperationId);
             return ResponseEntity.ok(ApiMessage.success("Импорт успешно завершён"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -89,8 +91,7 @@ public class SpaceMarineImportController {
 
             CoordinatesCreateDTO coords = new CoordinatesCreateDTO(
                     (float) node.get("coordinates").get("x").asDouble(),
-                    (float) node.get("coordinates").get("y").asDouble()
-            );
+                    (float) node.get("coordinates").get("y").asDouble());
 
             ChapterCreateDTO chapterDto = null;
             long chapterId = 0;
@@ -101,8 +102,7 @@ public class SpaceMarineImportController {
                 chapterDto = new ChapterCreateDTO(
                         ch.get("name").asText(),
                         ch.hasNonNull("parentLegion") ? ch.get("parentLegion").asText() : null,
-                        ch.hasNonNull("world") ? java.util.Optional.ofNullable(ch.get("world").asText()) : null
-                );
+                        ch.hasNonNull("world") ? java.util.Optional.ofNullable(ch.get("world").asText()) : null);
             }
 
             SpaceMarineImportDTO dto = new SpaceMarineImportDTO(
@@ -113,8 +113,7 @@ public class SpaceMarineImportController {
                     node.hasNonNull("health") ? node.get("health").asDouble() : 100.0,
                     node.hasNonNull("loyal") && node.get("loyal").asBoolean(),
                     node.get("achievements").asText(),
-                    AstartesCategory.valueOf(node.get("category").asText())
-            );
+                    AstartesCategory.valueOf(node.get("category").asText()));
 
             dtos.add(dto);
         }

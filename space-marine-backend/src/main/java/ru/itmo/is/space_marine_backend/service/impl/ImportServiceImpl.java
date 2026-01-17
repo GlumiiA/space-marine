@@ -10,11 +10,9 @@ import ru.itmo.is.space_marine_backend.repository.*;
 import ru.itmo.is.space_marine_backend.service.ImportService;
 import org.springframework.transaction.annotation.Isolation;
 
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Service
 @Transactional
@@ -24,28 +22,40 @@ public class ImportServiceImpl implements ImportService {
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
     private final ImportOperationRepository importOperationRepository;
+    private final ImportTransactionCoordinator coordinator;
     private static final double COORDINATE_EPSILON = 1e-6;
 
     public ImportServiceImpl(SpaceMarineRepository spaceMarineRepository,
-                             CoordinatesRepository coordinatesRepository,
-                             ChapterRepository chapterRepository,
-                             UserRepository userRepository,
-                             ImportOperationRepository importOperationRepository) {
+            CoordinatesRepository coordinatesRepository,
+            ChapterRepository chapterRepository,
+            UserRepository userRepository,
+            ImportOperationRepository importOperationRepository,
+            ImportTransactionCoordinator coordinator) {
         this.spaceMarineRepository = spaceMarineRepository;
         this.coordinatesRepository = coordinatesRepository;
         this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
         this.importOperationRepository = importOperationRepository;
+        this.coordinator = coordinator;
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public void importFromDTOs(List<SpaceMarineImportDTO> dtos, Long userId) {
+    public void importFromDTOs(List<SpaceMarineImportDTO> dtos, Long userId, Long importOperationId) {
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        ImportOperation operation = new ImportOperation();
-        operation.setUsername(owner.getUsername());
-        operation.setTimestamp(LocalDateTime.now());
+        ImportOperation operation;
+        if (importOperationId != null) {
+            operation = importOperationRepository.findById(importOperationId)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "ImportOperation not found for id=" + importOperationId));
+        } else {
+            operation = new ImportOperation();
+            operation.setUsername(owner.getUsername());
+            operation.setTimestamp(LocalDateTime.now());
+            operation.setStatus(ImportStatus.IN_PROGRESS);
+            operation.setAddedCount(0);
+        }
 
         List<SpaceMarine> marines = new ArrayList<>();
         try {
@@ -63,12 +73,20 @@ public class ImportServiceImpl implements ImportService {
                 coordinatesRepository.save(marine.getCoordinates());
                 spaceMarineRepository.save(marine);
             }
-
             operation.setStatus(ImportStatus.SUCCESS);
             operation.setAddedCount(marines.size());
+            if (importOperationId != null) {
+                coordinator.commit(importOperationId);
+            }
         } catch (Exception e) {
             operation.setStatus(ImportStatus.FAILED);
             operation.setAddedCount(0);
+            if (importOperationId != null) {
+                try {
+                    coordinator.rollback(importOperationId);
+                } catch (Exception ex) {
+                }
+            }
             throw e;
         } finally {
             importOperationRepository.save(operation);
@@ -114,7 +132,8 @@ public class ImportServiceImpl implements ImportService {
 
             for (SpaceMarine existing : spaceMarineRepository.findAllWithCoordinates()) {
                 Coordinates exCoords = existing.getCoordinates();
-                if (exCoords == null) continue;
+                if (exCoords == null)
+                    continue;
 
                 double dx = exCoords.getX() - coords.getX();
                 double dy = exCoords.getY() - coords.getY();
@@ -122,8 +141,7 @@ public class ImportServiceImpl implements ImportService {
 
                 if (Math.abs(dx) < COORDINATE_EPSILON && Math.abs(dy) < COORDINATE_EPSILON) {
                     throw new IllegalArgumentException(
-                            "Координаты уже заняты другим бойцом: " + existing.getName()
-                    );
+                            "Координаты уже заняты другим бойцом: " + existing.getName());
                 }
 
                 double minDistance = existing.getCategory().getRadius() + marine.getCategory().getRadius();
@@ -131,24 +149,20 @@ public class ImportServiceImpl implements ImportService {
                     throw new IllegalArgumentException(
                             String.format(
                                     "Нарушение пространственного ограничения: %s слишком близко к %s (%.2f < %.2f)",
-                                    marine.getName(), existing.getName(), distance, minDistance
-                            )
-                    );
+                                    marine.getName(), existing.getName(), distance, minDistance));
                 }
             }
 
             if (chapter.getId() != null && spaceMarineRepository
                     .existsByNameAndChapterId(marine.getName(), chapter.getId())) {
                 throw new IllegalArgumentException(
-                        "В главе '" + chapter.getName() + "' уже существует боец с именем '" + marine.getName() + "'"
-                );
+                        "В главе '" + chapter.getName() + "' уже существует боец с именем '" + marine.getName() + "'");
             }
 
             long marineCount = chapter.getId() != null ? spaceMarineRepository.countByChapterId(chapter.getId()) : 0;
             if (marineCount >= 100) {
                 throw new IllegalArgumentException(
-                        "Глава '" + chapter.getName() + "' достигла максимального лимита бойцов (100)"
-                );
+                        "Глава '" + chapter.getName() + "' достигла максимального лимита бойцов (100)");
             }
         }
     }

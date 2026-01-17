@@ -1,0 +1,55 @@
+[
+    {
+        "name": "Iron Hands Commander",
+        "coordinates": {
+            "x": -5.5,
+            "y": 42.0
+        },
+        "chapter": {
+            "name": "Iron Hands",
+            "parentLegion": "X Legion",
+            "world": "Medusa",
+            "marinesCount": 3
+        },
+        "health": 90.0,
+        "loyal": true,
+        "achievements": "Secured forge world",
+        "category": "DREADNOUGHT"
+    },
+    {
+        "name": "Raven Guard Operative",
+        "coordinates": {
+            "x": 30.2,
+            "y": -12.8
+        },
+        "chapterId": 2,
+        "health": 76.4,
+        "loyal": true,
+        "achievements": "Executed stealth strike",
+        "category": "SCOUT"
+    },
+    {
+        "name": "Salamanders Veteran",
+        "coordinates": {
+            "x": 18.0,
+            "y": 33.3
+        },
+        "chapterId": 2,
+        "health": 99.9,
+        "loyal": true,
+        "achievements": "Defended civilian convoy",
+        "category": "ASSAULT"
+    },
+    {
+        "name": "Night Lords Renegade",
+        "coordinates": {
+            "x": -20.0,
+            "y": 5.5
+        },
+        "chapterId": 2,
+        "health": 64.0,
+        "loyal": false,
+        "achievements": "Psychological warfare expert",
+        "category": "SUPPRESSOR"
+    }
+]

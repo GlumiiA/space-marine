@@ -105,7 +105,6 @@ public class SpaceMarineServiceImpl implements SpaceMarineService {
         float x = dto.coordinates().x();
         float y = dto.coordinates().y();
 
-        //TODO: согласовать ограничения уникальности.
         for (SpaceMarine existing : spaceMarineRepository.findAllWithCoordinates()) {
             Coordinates exCoords = existing.getCoordinates();
             if (exCoords == null) continue;
