@@ -1,10 +1,9 @@
 package ru.itmo.is.space_marine_backend.dto.response;
 
+import java.util.Optional;
 
 public record CacheStatusResponse(
         boolean l2CacheEnabled,
         boolean loggingEnabled,
-        Long hits,
-        Long misses,
-        Long puts) {
+        Optional<CacheStats> stats) {
 }

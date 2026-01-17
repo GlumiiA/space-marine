@@ -8,7 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.itmo.is.space_marine_backend.cache.CacheStatisticsAspect;
 import ru.itmo.is.space_marine_backend.dto.response.CacheOperationResponse;
+import ru.itmo.is.space_marine_backend.dto.response.CacheStats;
 import ru.itmo.is.space_marine_backend.dto.response.CacheStatusResponse;
+
+import java.util.Optional;
 
 
 @Slf4j
@@ -29,18 +32,30 @@ public class CacheController {
 
     @PostMapping("/enable")
     public ResponseEntity<CacheOperationResponse> enableLogging() {
-        statisticsAspect.enableLogging();
-        return ResponseEntity.ok(new CacheOperationResponse(
-                true,
-                "Cache statistics logging enabled"));
+        try {
+            statisticsAspect.enableLogging();
+            return ResponseEntity.ok(new CacheOperationResponse(
+                    true,
+                    "Cache statistics logging enabled"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new CacheOperationResponse(
+                    false,
+                    "Failed to enable cache logging: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/disable")
     public ResponseEntity<CacheOperationResponse> disableLogging() {
-        statisticsAspect.disableLogging();
-        return ResponseEntity.ok(new CacheOperationResponse(
-                true,
-                "Cache statistics logging disabled"));
+        try {
+            statisticsAspect.disableLogging();
+            return ResponseEntity.ok(new CacheOperationResponse(
+                    true,
+                    "Cache statistics logging disabled"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new CacheOperationResponse(
+                    false,
+                    "Failed to disable cache logging: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/status")
@@ -48,23 +63,19 @@ public class CacheController {
         boolean l2CacheEnabled = sessionFactory.getSessionFactoryOptions().isSecondLevelCacheEnabled();
         boolean loggingEnabled = statisticsAspect.isLoggingEnabled();
 
-        Long hits = null;
-        Long misses = null;
-        Long puts = null;
-
+        Optional<CacheStats> statsOpt = Optional.empty();
         if (loggingEnabled) {
             var stats = statisticsAspect.getStatistics();
-            hits = stats.getSecondLevelCacheHitCount();
-            misses = stats.getSecondLevelCacheMissCount();
-            puts = stats.getSecondLevelCachePutCount();
+            statsOpt = Optional.of(new CacheStats(
+                    stats.getSecondLevelCacheHitCount(),
+                    stats.getSecondLevelCacheMissCount(),
+                    stats.getSecondLevelCachePutCount()));
         }
 
         return ResponseEntity.ok(new CacheStatusResponse(
                 l2CacheEnabled,
                 loggingEnabled,
-                hits,
-                misses,
-                puts));
+                statsOpt));
     }
 
     @PostMapping("/clear")

@@ -18,6 +18,7 @@ import ru.itmo.is.space_marine_backend.dto.response.ApiError;
 import ru.itmo.is.space_marine_backend.dto.response.ApiMessage;
 import ru.itmo.is.space_marine_backend.entity.ImportOperation;
 import ru.itmo.is.space_marine_backend.service.impl.ImportTransactionCoordinator;
+import ru.itmo.is.space_marine_backend.infrastructure.FaultInjectionContext;
 
 @RestController
 @RequestMapping("/api/imports")
@@ -29,17 +30,16 @@ public class ImportFileController {
     @PostMapping("/prepare")
     public ResponseEntity<?> prepare(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("username") String username,
-            @RequestParam(value = "failAfterFile", defaultValue = "false") boolean failAfterFile
+            @RequestParam("username") String username
     ) throws Exception {
         ImportOperation op;
         try (var is = file.getInputStream()) {
             op = coordinator.prepare(username, is, file.getOriginalFilename(),
                     file.getContentType(), file.getSize());
         }
-        // Для тестирования сценария: RuntimeException между загрузкой файла и записью в
-        // БД
-        if (failAfterFile) {
+        // Для тестирования сценария: RuntimeException между загрузкой файла и записью в БД
+        // Fault injection через заголовки
+        if (FaultInjectionContext.isFailAfterFile()) {
             throw new RuntimeException("[TEST] Ошибка после загрузки файла, до записи в БД");
         }
         return ResponseEntity.ok(ApiMessage.success("Prepared import operation id=" + op.getId()));

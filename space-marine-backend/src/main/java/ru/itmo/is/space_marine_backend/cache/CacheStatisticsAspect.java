@@ -19,7 +19,7 @@ public class CacheStatisticsAspect {
     private final CacheLoggingProperties loggingProperties;
 
     public CacheStatisticsAspect(EntityManagerFactory entityManagerFactory,
-            CacheLoggingProperties loggingProperties) {
+                                 CacheLoggingProperties loggingProperties) {
         SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
         this.hibernateStatistics = sessionFactory.getStatistics();
         this.loggingProperties = loggingProperties;

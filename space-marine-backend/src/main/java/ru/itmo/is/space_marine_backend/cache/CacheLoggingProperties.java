@@ -9,5 +9,5 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "app.l2cache")
 public class CacheLoggingProperties {
-    private boolean enabled = false;
+    private boolean enabled;
 }

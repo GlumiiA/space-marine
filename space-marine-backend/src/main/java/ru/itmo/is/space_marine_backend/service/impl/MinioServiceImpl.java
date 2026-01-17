@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import ru.itmo.is.space_marine_backend.service.MinioService;
 
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,8 +70,11 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public String presignGetUrl(String key, Duration expiry, String filename) {
         try {
-            java.util.Map<String, String> extra = new java.util.HashMap<>();
-            extra.put("response-content-disposition", "attachment; filename=\"" + filename + "\"");
+            String sanitizedFilename = sanitizeFilename(filename);
+            Map<String, String> extra = new HashMap<>();
+            extra.put("response-content-disposition",
+                    String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                            sanitizedFilename, URLEncoder.encode(sanitizedFilename, StandardCharsets.UTF_8)));
 
             GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
@@ -82,5 +87,15 @@ public class MinioServiceImpl implements MinioService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to create presigned url", e);
         }
+    }
+
+    private String sanitizeFilename(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return "download";
+        }
+        // Remove control characters, quotes, and dangerous chars for HTTP headers
+        return filename.replaceAll("[\\r\\n\\\"\\\\]", "")
+                .replaceAll("[^\\p{Print}]", "")
+                .trim();
     }
 }
